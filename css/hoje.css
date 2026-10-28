@@ -197,3 +197,18 @@
 .cat-nova .campo { flex: 1; }
 .cat-vazio { padding: 8px; }
 .painel-acoes.um { grid-template-columns: 1fr; }
+
+/* ===== Tocar na tarefa para editar ===== */
+.tarefa-texto { background: none; border: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; padding: 6px 0; min-height: 40px; }
+.tarefa-texto:hover .tarefa-nome { text-decoration: underline dotted; text-underline-offset: 3px; }
+.tarefa-nome { overflow-wrap: anywhere; }
+.aviso-rotina { display: flex; gap: 8px; align-items: flex-start; padding: 10px 12px; border-radius: 12px; background: var(--destaque-suave); color: var(--texto); font-size: 0.88rem; }
+.aviso-rotina .ico { margin-top: 2px; color: var(--destaque-texto); }
+#painel-editar .painel-folha { grid-template-columns: minmax(0, 1fr); }
+#painel-editar .horarios .botao-icone { flex: none; }
+
+/* ===== Cronômetro: pausa e tempos longos ===== */
+.foco-caixa.pausado .foco-progresso { stroke: var(--amarelo); }
+.foco-caixa.pausado .foco-rotulo { color: var(--amarelo); }
+.foco-tempo.longo { font-size: 2.3rem; }
+.foco-acoes .botao .ico { width: 1.1em; height: 1.1em; }

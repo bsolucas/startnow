@@ -13,7 +13,8 @@ A ideia é simples: você não precisa terminar a tarefa, só ficar 5 minutos ne
 - **Duas formas de ver a lista:** **Por tipo** (tarefas de hoje, diárias e concluídas) ou **Por categoria** (uma seção para cada categoria, com tudo dela, como numa lista de supermercado, mostrando quantas já foram feitas). A escolha fica guardada.
 - **Faixa da semana:** os próximos 7 dias no topo. Toque num dia para ver e planejar as tarefas dele. Um pontinho mostra se o dia tem tarefas (azul) ou se está tudo feito (verde).
 - **Tarefas separadas em grupos:** *Tarefas de hoje* (ou *para quarta*, etc.), *Tarefas diárias* (as que se repetem) e *Concluídas*.
-- **Começar agora:** o botão grande pega a primeira tarefa pendente de hoje e abre um cronômetro de 5 minutos (ou use o ▶ de uma tarefa específica, até de uma diária). No fim toca um som, vibra e pergunta: *terminei*, *mais 5 minutos* ou *parar por agora*. O cronômetro continua certo mesmo se a tela travar ou o app for fechado.
+- **Cronômetro da tarefa ("Começar agora"):** o botão grande pega a primeira tarefa pendente de hoje (ou use o ▶ de uma tarefa específica). O **tempo vem da própria tarefa**: se ela tem horário (das 09:00 às 10:30), o cronômetro conta **1h30**; se não tem, conta **5 minutos** (o truque contra a procrastinação: só ficar um pouco nela). Dá para **pausar e retomar**. Quando o tempo acaba, toca um som, vibra e pergunta: *terminei*, *mais 5 minutos* ou *parar por agora*. O cronômetro continua certo mesmo se a tela travar ou o app for fechado, e em pausa ele guarda quanto faltava.
+- **Editar uma tarefa:** toque no nome dela na lista para mudar o **horário** (ou tirar o horário), o texto e a categoria. Se ela se repete, a folha avisa que a mudança vale para todos os dias dela. Se o novo horário bate com outra tarefa, o app avisa.
 - **Tarefas de ontem:** o que ficou sem fazer aparece num aviso com *Trazer para hoje* ou *Dispensar*. As tarefas que se repetem não acumulam.
 - **Sequência:** dias seguidos com **pelo menos uma** tarefa feita (única ou diária). Só quebra quando o dia termina sem nenhuma.
 - **Desfazer:** apagou sem querer? O aviso tem o botão *Desfazer*. Apagar uma tarefa que se repete pede confirmação, porque ela some de todos os dias.
@@ -45,7 +46,7 @@ Abra `http://localhost:8080`. No celular, abra o endereço do computador na mesm
 ```bash
 node --test test/
 ```
-Testam a lógica (`js/logica.js`: datas, dias da semana, tarefas que se repetem, categorias, horários e conflitos, sequência, nome como login, tempo) e as contas de cor (`js/tema.js`: códigos de cor, contraste legível em todas as cores e nos dois temas).
+Testam a lógica (`js/logica.js`: datas, dias da semana, tarefas que se repetem, categorias, horários, duração, edição e conflitos, sequência, nome como login, tempo) e as contas de cor (`js/tema.js`: códigos de cor, contraste legível em todas as cores e nos dois temas).
 
 ## Como o código está organizado
 ```
@@ -61,7 +62,8 @@ js/perfil.js         "Oi, digite seu nome" e "Criar lista de tarefas"
 js/formulario.js     o formulário de nova tarefa (dia, categoria, horário e repetir)
 js/categorias.js     o painel de categorias
 js/iniciar.js        decide o que mostrar ao abrir
-js/foco.js           o cronômetro "Começar agora"
+js/foco.js           o cronômetro da tarefa (tempo da tarefa, pausar e retomar)
+js/editar.js         a folha de editar uma tarefa
 js/hoje.js           a tela principal
 manifest.json, service-worker.js, js/pwa.js, icones/   instalar no celular e abrir sem internet
 ```

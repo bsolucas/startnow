@@ -33,7 +33,8 @@ App.hoje = (function () {
     var titulo = p.total ? p.feitas + " de " + p.total + " feitas" : maiuscula(L.nomeDoDia(selecionado, hoje));
     var botao;
     if (ehHoje) {
-      var rotulo = proxima ? " Começar agora (" + cfg.MINUTOS_FOCO + " min)" : (p.total ? " Tudo feito por hoje" : " Adicione uma tarefa");
+      var tp = proxima ? tempoDe(proxima) : null;
+      var rotulo = proxima ? " Começar agora (" + L.textoDuracao(tp.seg).replace(" minutos", " min").replace(" minuto", " min") + ")" : (p.total ? " Tudo feito por hoje" : " Adicione uma tarefa");
       botao = '<button class="botao botao-primario botao-grande botao-largo" data-acao="comecar"' + (proxima ? "" : " disabled") + ">" + App.icone("play") + rotulo + "</button>";
     } else {
       botao = '<button class="botao botao-borda botao-grande botao-largo" data-acao="hoje">Voltar para hoje</button>';
@@ -70,11 +71,11 @@ App.hoje = (function () {
     var hora = L.rotuloHorario(i.inicio, i.fim), dur = L.duracao(i.inicio, i.fim);
     return '<li class="tarefa' + (i.feita ? " feita" : "") + '" data-chave="' + u.escaparHtml(i.chave) + '">' +
       '<button type="button" class="tarefa-check" data-acao="alternar" aria-pressed="' + i.feita + '" aria-label="' + (i.feita ? "Desmarcar" : "Marcar como feita") + ": " + u.escaparHtml(i.texto) + '">' + App.icone("check") + "</button>" +
-      '<span class="tarefa-texto">' + u.escaparHtml(i.texto) +
+      '<button type="button" class="tarefa-texto" data-acao="editar" aria-label="Editar: ' + u.escaparHtml(i.texto) + '"><span class="tarefa-nome">' + u.escaparHtml(i.texto) + "</span>" +
         (hora ? '<small class="tarefa-hora">' + App.icone("relogio") + " " + u.escaparHtml(hora) + (dur ? " · " + dur : "") + "</small>" : "") +
         (cat ? '<small class="tarefa-cat" style="--cat:' + cat.cor + '"><i></i>' + u.escaparHtml(cat.nome) + "</small>" : "") +
         (i.repete ? '<small class="tarefa-tag">' + App.icone("repetir") + " " + u.escaparHtml(i.repete) + "</small>" : "") +
-        (i.veioDe ? '<small class="tarefa-origem">veio de ' + u.escaparHtml(i.veioDe.split("-").reverse().slice(0, 2).join("/")) + "</small>" : "") + "</span>" +
+        (i.veioDe ? '<small class="tarefa-origem">veio de ' + u.escaparHtml(i.veioDe.split("-").reverse().slice(0, 2).join("/")) + "</small>" : "") + "</button>" +
       (podeComecar ? '<button type="button" class="tarefa-botao" data-acao="foco" aria-label="Começar agora: ' + u.escaparHtml(i.texto) + '" title="Começar agora">' + App.icone("play") + "</button>" : "") +
       '<button type="button" class="tarefa-botao tarefa-apagar" data-acao="apagar" aria-label="Apagar: ' + u.escaparHtml(i.texto) + '" title="Apagar">' + App.icone("x") + "</button></li>";
   }
@@ -160,11 +161,29 @@ App.hoje = (function () {
     } });
   }
 
+  /* Quanto tempo o cronômetro vai contar para uma tarefa: o do horário dela (início até fim) ou o padrão. */
+  function tempoDe(item) {
+    var seg = L.duracaoSegundos(item.inicio, item.fim);
+    return seg ? { seg: seg, rotulo: "Tempo da tarefa: " + L.rotuloHorario(item.inicio, item.fim) + " (" + L.textoDuracao(seg) + ")" }
+               : { seg: cfg.MINUTOS_FOCO * 60, rotulo: "Só " + cfg.MINUTOS_FOCO + " minutos. Comece." };
+  }
   function comecar(chave) {
     var it = L.ordenar(itensDe(hoje).todos).filter(function (i) { return !i.feita; });
     var item = chave ? it.filter(function (i) { return i.chave === chave; })[0] : it[0];
     if (!item) return;
-    App.foco.iniciar({ id: item.chave, texto: item.texto }, cfg.MINUTOS_FOCO);
+    var t = tempoDe(item);
+    App.foco.iniciar({ id: item.chave, texto: item.texto }, t.seg, t.rotulo);
+  }
+
+  /* Tocar na tarefa abre a edição (horário, texto, categoria). */
+  function editar(chave) {
+    var item = achar(chave, selecionado); if (!item) return;
+    App.editar.abrir(item, dados, function (feito) {
+      salvar(); desenhar();
+      var novo = achar(chave, selecionado);
+      var batem = novo && novo.inicio && novo.fim ? L.conflitos(itensDe(selecionado).todos.filter(function (i) { return i.chave !== chave; }), novo.inicio, novo.fim) : [];
+      App.aviso(batem.length ? "Salvo. Atenção: bate com “" + batem[0].texto + "” (" + L.rotuloHorario(batem[0].inicio, batem[0].fim) + ")." : "Tarefa atualizada.");
+    });
   }
 
   function escolherDia(dia) {
@@ -193,7 +212,7 @@ App.hoje = (function () {
       var b = ev.target.closest("[data-acao]"), li = ev.target.closest("[data-chave]");
       if (!b || !li) return;
       var acao = b.getAttribute("data-acao"), chave = li.getAttribute("data-chave");
-      if (acao === "alternar") alternar(chave); else if (acao === "apagar") apagar(chave); else if (acao === "foco") comecar(chave);
+      if (acao === "alternar") alternar(chave); else if (acao === "apagar") apagar(chave); else if (acao === "foco") comecar(chave); else if (acao === "editar") editar(chave);
     });
     $("resumo").addEventListener("click", function (ev) {
       var b = ev.target.closest("[data-acao]"); if (!b) return;

@@ -137,6 +137,12 @@
     var m = L.minutos(fim) - L.minutos(inicio), h = Math.floor(m / 60), r = m % 60;
     return h ? h + "h" + (r ? dois(r) : "") : r + "min";
   };
+  /* Duração em SEGUNDOS entre início e fim (para o cronômetro), ou null se a tarefa não tem os dois horários. */
+  L.duracaoSegundos = function (inicio, fim) {
+    if (!inicio || !fim) return null;
+    var m = L.minutos(fim) - L.minutos(inicio);
+    return m > 0 ? m * 60 : null;
+  };
   /* Dois horários se sobrepõem? Só vale quando os dois têm início e fim; encostar (um acaba quando o outro começa) não conta. */
   L.sobrepoe = function (aIni, aFim, bIni, bFim) {
     if (!aIni || !aFim || !bIni || !bFim) return false;
@@ -145,6 +151,22 @@
   /* Tarefas do dia (ainda por fazer) que batem com este horário. */
   L.conflitos = function (itens, inicio, fim) {
     return itens.filter(function (i) { return !i.feita && L.sobrepoe(inicio, fim, i.inicio, i.fim); });
+  };
+
+  /* ---------- editar uma tarefa ---------- */
+  /* Muda texto, categoria e horário de uma tarefa. "chave" é a do item (id da tarefa única ou "r:<id>" da rotina:
+     no caso da rotina, a mudança vale para todos os dias em que ela se repete). Devolve { ok } ou { ok: false, erro }. */
+  L.editarItem = function (dados, chave, campos, max) {
+    var ehRotina = String(chave).indexOf("r:") === 0, id = ehRotina ? chave.slice(2) : chave;
+    var alvo = (ehRotina ? dados.rotinas : dados.tarefas).filter(function (t) { return t.id === id; })[0];
+    if (!alvo) return { ok: false, erro: "Essa tarefa não existe mais." };
+    var texto = limparTexto(campos.texto, max);
+    if (!texto) return { ok: false, erro: "A tarefa não pode ficar sem texto." };
+    var h = L.validarHorario(campos.inicio, campos.fim);
+    if (!h.ok) return { ok: false, erro: h.erro };
+    var cat = campos.categoriaId && (dados.categorias || []).some(function (c) { return c.id === campos.categoriaId; }) ? campos.categoriaId : null;
+    alvo.texto = texto; alvo.categoriaId = cat; alvo.inicio = h.inicio; alvo.fim = h.fim;
+    return { ok: true };
   };
 
   /* ---------- categorias ---------- */
@@ -251,7 +273,16 @@
   };
 
   /* ---------- textos ---------- */
-  L.formatarTempo = function (segundos) { var s = Math.max(0, Math.round(segundos)); return dois(Math.floor(s / 60)) + ":" + dois(s % 60); };
+  /* 300 -> "05:00"; 5400 -> "01:30:00" (com horas quando passa de 1 hora) */
+  L.formatarTempo = function (segundos) {
+    var s = Math.max(0, Math.round(segundos)), h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60);
+    return (h ? dois(h) + ":" : "") + dois(m) + ":" + dois(s % 60);
+  };
+  /* "5 minutos", "1h30", "2h" a partir de segundos (para frases como "Tempo da tarefa: 1h30") */
+  L.textoDuracao = function (segundos) {
+    var m = Math.round(segundos / 60), h = Math.floor(m / 60), r = m % 60;
+    return h ? h + "h" + (r ? dois(r) : "") : m + (m === 1 ? " minuto" : " minutos");
+  };
   L.mensagem = function (p, minutos) {
     if (!p.total) return "Nada por aqui. Escreva a primeira tarefa, pequena já serve.";
     if (p.feitas === 0) return "Escolha UMA tarefa e comece por " + (minutos || 5) + " minutos.";

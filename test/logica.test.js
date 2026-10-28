@@ -179,3 +179,34 @@ test('migrar: dados antigos ganham as categorias padrão e a visão "tipo"', () 
   const mantem = L.migrar({ categorias: [{ id: 'x', nome: 'Só esta', cor: '#000000' }], visao: 'categoria' });
   assert.equal(mantem.categorias.length, 1); assert.equal(mantem.visao, 'categoria');
 });
+
+test('duração em segundos, tempo com horas e texto da duração', () => {
+  assert.equal(L.duracaoSegundos('09:00', '10:30'), 5400); assert.equal(L.duracaoSegundos('09:00', '09:05'), 300);
+  assert.equal(L.duracaoSegundos('09:00', null), null); assert.equal(L.duracaoSegundos(null, '10:00'), null); assert.equal(L.duracaoSegundos('10:00', '09:00'), null);
+  assert.equal(L.formatarTempo(300), '05:00'); assert.equal(L.formatarTempo(3599), '59:59'); assert.equal(L.formatarTempo(3600), '01:00:00'); assert.equal(L.formatarTempo(5400), '01:30:00'); assert.equal(L.formatarTempo(36000 + 61), '10:01:01');
+  assert.equal(L.textoDuracao(300), '5 minutos'); assert.equal(L.textoDuracao(60), '1 minuto'); assert.equal(L.textoDuracao(5400), '1h30'); assert.equal(L.textoDuracao(7200), '2h');
+});
+
+test('editarItem: muda horário, texto e categoria; recusa dados inválidos sem alterar nada', () => {
+  const dados = L.migrar({ tarefas: [L.novaTarefa('reunião', HOJE, 1, 140, { categoriaId: 'c-trabalho', inicio: '09:00', fim: '10:00' })],
+                           rotinas: [L.novaRotina('estudar', 'diaria', [], HOJE, 2, 140, { inicio: '20:00', fim: '21:00' })] });
+  const idT = dados.tarefas[0].id, idR = 'r:' + dados.rotinas[0].id;
+  assert.deepEqual(L.editarItem(dados, idT, { texto: '  Reunião   com a equipe ', categoriaId: 'c-casa', inicio: '10:00', fim: '11:30' }), { ok: true });
+  assert.deepEqual([dados.tarefas[0].texto, dados.tarefas[0].categoriaId, dados.tarefas[0].inicio, dados.tarefas[0].fim], ['Reunião com a equipe', 'c-casa', '10:00', '11:30']);
+  // tirar o horário
+  L.editarItem(dados, idT, { texto: 'x', categoriaId: null, inicio: '', fim: '' });
+  assert.deepEqual([dados.tarefas[0].inicio, dados.tarefas[0].fim], [null, null]);
+  // rotina: vale para a rotina inteira
+  assert.equal(L.editarItem(dados, idR, { texto: 'estudar inglês', categoriaId: 'c-estudos', inicio: '19:00', fim: '19:45' }).ok, true);
+  assert.deepEqual([dados.rotinas[0].texto, dados.rotinas[0].inicio, dados.rotinas[0].fim], ['estudar inglês', '19:00', '19:45']);
+  assert.equal(L.itensDoDia(dados, '2026-11-10').rotinas[0].inicio, '19:00');   // vale em outro dia também
+  // inválidos: nada muda
+  const antes = JSON.stringify(dados);
+  assert.match(L.editarItem(dados, idT, { texto: '   ', inicio: '', fim: '' }).erro, /sem texto/);
+  assert.match(L.editarItem(dados, idT, { texto: 'ok', inicio: '11:00', fim: '10:00' }).erro, /depois do início/);
+  assert.match(L.editarItem(dados, idT, { texto: 'ok', inicio: '', fim: '10:00' }).erro, /início/);
+  assert.match(L.editarItem(dados, 'nao-existe', { texto: 'ok' }).erro, /não existe/);
+  assert.equal(JSON.stringify(dados), antes);
+  // categoria que não existe vira "sem categoria"
+  L.editarItem(dados, idT, { texto: 'ok', categoriaId: 'c-fantasma', inicio: '', fim: '' }); assert.equal(dados.tarefas[0].categoriaId, null);
+});

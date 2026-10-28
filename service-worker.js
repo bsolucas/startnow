@@ -8,7 +8,7 @@ const VERSAO_CACHE = 'startnow-v1';
 const ARQUIVOS = [
   './', 'index.html', 'manifest.json',
   'css/base.css', 'css/componentes.css', 'css/hoje.css',
-  'js/tema.js', 'js/config.js', 'js/logica.js', 'js/utilitarios.js', 'js/armazenamento.js', 'js/personalizar.js', 'js/foco.js', 'js/hoje.js', 'js/pwa.js',
+  'js/tema.js', 'js/config.js', 'js/logica.js', 'js/utilitarios.js', 'js/armazenamento.js', 'js/personalizar.js', 'js/foco.js', 'js/formulario.js', 'js/perfil.js', 'js/hoje.js', 'js/iniciar.js', 'js/pwa.js',
   'icones/icone-192.png', 'icones/icone-512.png', 'icones/apple-touch-icon.png'
 ];
 

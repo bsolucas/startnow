@@ -84,16 +84,23 @@ App.foco = (function () {
     }
   }
 
-  /* Liga o módulo. aoConcluir(id) é chamado quando a pessoa diz "terminei". */
-  function ligar(elemento, aoConcluir) {
-    el = elemento; aoConcluirTarefa = aoConcluir;
-    el.addEventListener("click", aoClicar);
-    // se o app foi fechado no meio de um foco, retoma (ou mostra "Tempo!" se já passou)
+  /* Retoma o foco da pessoa conectada, se o app foi fechado no meio (ou mostra "Tempo!" se já passou). */
+  function restaurar() {
+    estado = null; clearInterval(intervalo); intervalo = null;
     var f = dados().foco;
     if (f && f.fimEm) {
       estado = { tarefaId: f.tarefaId, texto: f.texto, fimEm: f.fimEm, duracao: f.duracao, terminou: f.fimEm <= Date.now() };
       desenhar(); if (!estado.terminou) comecarRelogio();
-    }
+    } else desenhar();
   }
-  return { ligar: ligar, iniciar: iniciar, ativo: function () { return !!estado; } };
+  /* Esquece o cronômetro que está na tela SEM mexer nos dados (ao trocar de pessoa). */
+  function limpar() { estado = null; clearInterval(intervalo); intervalo = null; if (el) { el.hidden = true; el.innerHTML = ""; } }
+
+  /* Liga o módulo. aoConcluir(chave) é chamado quando a pessoa diz "terminei". */
+  function ligar(elemento, aoConcluir) {
+    el = elemento; aoConcluirTarefa = aoConcluir;
+    el.addEventListener("click", aoClicar);
+    restaurar();
+  }
+  return { ligar: ligar, restaurar: restaurar, limpar: limpar, iniciar: iniciar, ativo: function () { return !!estado; } };
 })();

@@ -28,26 +28,35 @@
 </head>
 <body>
 
-  <header class="topo">
-    <div class="marca"><span class="marca-icone">S</span><span>StartNow</span></div>
-    <div class="topo-espaco"></div>
-    <span class="selo-sequencia" id="selo-sequencia" hidden></span>
-    <button type="button" class="botao-icone" id="botao-personalizar" aria-label="Personalizar cores" title="Personalizar cores"></button>
-  </header>
+  <!-- 1) "Oi, digite seu nome" (js/perfil.js)  e  2) "Criar lista de tarefas" -->
+  <div class="tela-cheia" id="entrada" hidden></div>
+  <div class="tela-cheia" id="criar-lista" hidden></div>
 
-  <main class="conteudo">
-    <section class="cartao resumo" id="resumo" aria-live="polite"></section>
+  <!-- 3) O app -->
+  <div id="app" hidden>
+    <header class="topo">
+      <div class="marca"><span class="marca-icone">S</span><span>StartNow</span></div>
+      <div class="topo-espaco"></div>
+      <span class="selo-sequencia" id="selo-sequencia" hidden></span>
+      <button type="button" class="botao-icone" id="botao-personalizar" aria-label="Personalizar cores" title="Personalizar cores"></button>
+      <div class="perfil-caixa">
+        <button type="button" class="avatar" id="botao-perfil" aria-label="Menu da pessoa"></button>
+        <div class="menu-perfil" id="menu-perfil" hidden>
+          <p>Olá, <strong id="menu-nome"></strong></p>
+          <button type="button" class="botao botao-borda botao-pequeno botao-largo" id="botao-sair">Sair</button>
+        </div>
+      </div>
+    </header>
 
-    <section class="aviso-pendentes" id="aviso-pendentes" hidden></section>
-
-    <form class="nova-tarefa" id="form-tarefa" autocomplete="off">
-      <input class="campo" id="campo-tarefa" maxlength="140" placeholder="O que fazer hoje?" aria-label="Nova tarefa" enterkeyhint="done" />
-      <button class="botao botao-primario" type="submit" aria-label="Adicionar tarefa">Adicionar</button>
-    </form>
-
-    <ul class="lista-tarefas" id="lista-tarefas"></ul>
-    <p class="vazio" id="vazio" hidden>Nenhuma tarefa ainda.<br>Escreva a primeira acima. Quanto menor, melhor.</p>
-  </main>
+    <main class="conteudo">
+      <nav class="semana" id="semana" aria-label="Próximos dias"></nav>
+      <section class="cartao resumo" id="resumo" aria-live="polite"></section>
+      <section class="aviso-pendentes" id="aviso-pendentes" hidden></section>
+      <div id="formulario-principal"></div>
+      <div id="grupos"></div>
+      <p class="vazio" id="vazio" hidden></p>
+    </main>
+  </div>
 
   <!-- Painel "Personalizar" (desenhado por js/personalizar.js) -->
   <div class="painel" id="painel" hidden></div>
@@ -65,7 +74,10 @@
   <script src="js/armazenamento.js"></script>
   <script src="js/personalizar.js"></script>
   <script src="js/foco.js"></script>
+  <script src="js/formulario.js"></script>
+  <script src="js/perfil.js"></script>
   <script src="js/hoje.js"></script>
+  <script src="js/iniciar.js"></script>
   <script src="js/pwa.js"></script>
 </body>
 </html>

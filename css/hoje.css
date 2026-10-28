@@ -90,3 +90,65 @@
 .previa-cores .barra { grid-column: 1 / -1; }
 .previa-pct { justify-self: end; font-size: 1.3rem; font-weight: 800; color: var(--destaque-texto); }
 .painel-acoes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 6px; }
+
+/* ===== Telas de entrada: "Oi, digite seu nome" e "Criar lista de tarefas" ===== */
+.tela-cheia { min-height: 100vh; display: grid; place-items: center; padding: 24px 18px; }
+.tela-caixa { width: 100%; max-width: 420px; display: grid; gap: 14px; }
+.tela-larga { max-width: 520px; }
+.marca-grande { justify-content: center; font-size: 1.3rem; margin-bottom: 8px; }
+.marca-grande .marca-icone { width: 44px; height: 44px; font-size: 1.3rem; border-radius: 12px; }
+.tela-titulo { font-size: 2rem; text-align: center; }
+.tela-passo { text-align: center; color: var(--destaque-texto); font-weight: 700; }
+.tela-texto { text-align: center; color: var(--texto-suave); }
+.tela-nota { text-align: center; color: var(--texto-suave); font-size: 0.82rem; }
+.campo-grande { min-height: 58px; font-size: 1.2rem; text-align: center; }
+.marcador { display: flex; align-items: center; gap: 10px; margin: 12px 2px 4px; color: var(--texto-suave); font-size: 0.92rem; cursor: pointer; }
+.marcador input { width: 20px; height: 20px; accent-color: var(--destaque); }
+.erro { min-height: 1.3em; color: var(--vermelho); font-size: 0.9rem; text-align: center; }
+.previa-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.previa-lista li { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 12px; background: var(--superficie); border: 1px solid var(--borda); }
+.previa-lista li .ico { color: var(--verde); flex: none; }
+.previa-lista li span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.previa-lista li small { color: var(--texto-suave); white-space: nowrap; }
+
+/* ===== Formulário de nova tarefa: "quando" e "repetir" ===== */
+.form-tarefa { display: grid; gap: 8px; }
+.chips-rotulo { margin-top: 4px; font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--texto-suave); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { min-height: 40px; padding: 6px 14px; border-radius: 999px; border: 1.5px solid var(--borda); background: var(--superficie); color: var(--texto-suave); font-weight: 600; font-size: 0.92rem; cursor: pointer; transition: all 0.12s; }
+.chip:hover { border-color: var(--destaque); }
+.chip[aria-pressed="true"] { background: var(--destaque); border-color: var(--destaque); color: var(--sobre-destaque); }
+.chips-dias { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.chips-dias .chip { display: grid; place-items: center; padding: 6px 0; border-radius: 12px; line-height: 1.15; }
+.chips-dias .chip small { font-size: 0.78rem; opacity: 0.85; }
+
+/* ===== Faixa da semana ===== */
+.semana { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.dia { display: grid; justify-items: center; gap: 2px; padding: 8px 0 6px; border-radius: 14px; border: 1.5px solid var(--borda); background: var(--superficie); color: var(--texto-suave); cursor: pointer; transition: all 0.12s; }
+.dia small { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; }
+.dia b { font-size: 1.1rem; color: var(--texto); }
+.dia i { width: 6px; height: 6px; border-radius: 50%; background: transparent; }
+.dia.tem i { background: var(--destaque-claro); }
+.dia.completo i { background: var(--verde); }
+.dia[aria-pressed="true"] { background: var(--destaque); border-color: var(--destaque); color: var(--sobre-destaque); }
+.dia[aria-pressed="true"] b { color: var(--sobre-destaque); }
+.dia[aria-pressed="true"] i { background: var(--sobre-destaque); opacity: 0.9; }
+
+/* ===== Grupos de tarefas ===== */
+#grupos { display: grid; gap: 18px; }
+.grupo-titulo { display: flex; align-items: center; gap: 8px; margin: 0 0 8px 2px; font-size: 0.95rem; font-weight: 700; color: var(--texto-suave); text-transform: uppercase; letter-spacing: 0.04em; }
+.grupo-qtd { display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 7px; border-radius: 11px; background: var(--superficie-3); color: var(--texto); font-size: 0.78rem; letter-spacing: 0; }
+.grupo-rotinas .grupo-titulo { color: var(--destaque-texto); }
+.grupo-concluidas summary { cursor: pointer; list-style: none; }
+.grupo-concluidas summary::-webkit-details-marker { display: none; }
+.grupo-concluidas summary::before { content: "▾"; font-size: 0.8rem; }
+.grupo-concluidas:not([open]) summary::before { content: "▸"; }
+.tarefa-tag { display: inline-flex; align-items: center; gap: 4px; margin: 3px 0 0; padding: 1px 8px; border-radius: 999px; background: var(--destaque-suave); color: var(--destaque-texto); font-size: 0.74rem; font-weight: 600; text-decoration: none; }
+.tarefa-tag .ico { width: 12px; height: 12px; }
+.tarefa-texto { display: grid; gap: 2px; justify-items: start; }
+
+/* ===== Pessoa no topo ===== */
+.perfil-caixa { position: relative; }
+.avatar { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50%; border: 0; background: var(--destaque); color: var(--sobre-destaque); font-weight: 800; font-size: 1.05rem; cursor: pointer; }
+.menu-perfil { position: absolute; right: 0; top: calc(100% + 8px); z-index: 30; min-width: 190px; display: grid; gap: 10px; padding: 14px; border-radius: 14px; background: var(--superficie); border: 1px solid var(--borda); box-shadow: var(--sombra); }
+.menu-perfil p { overflow-wrap: anywhere; }

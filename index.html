@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<!-- =============================================================================
+     index.html — COMEÇA JÁ (tela única: "Hoje")
+     -----------------------------------------------------------------------------
+     App contra a procrastinação: lista do dia + cronômetro "Começar agora" de 5 minutos.
+     Por enquanto os dados ficam no próprio aparelho (js/armazenamento.js).
+     ============================================================================= -->
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Começa Já</title>
+
+  <!-- PWA: deixa o app instalável no celular (Android/iPhone) -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#3b6fd6" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Começa Já" />
+  <link rel="icon" type="image/png" href="icones/icone-192.png" />
+  <link rel="apple-touch-icon" href="icones/apple-touch-icon.png" />
+
+  <link rel="stylesheet" href="css/base.css" />
+  <link rel="stylesheet" href="css/componentes.css" />
+  <link rel="stylesheet" href="css/hoje.css" />
+</head>
+<body>
+
+  <header class="topo">
+    <div class="marca"><span class="marca-icone">C</span><span>Começa Já</span></div>
+    <div class="topo-espaco"></div>
+    <span class="selo-sequencia" id="selo-sequencia" hidden></span>
+  </header>
+
+  <main class="conteudo">
+    <section class="cartao resumo" id="resumo" aria-live="polite"></section>
+
+    <section class="aviso-pendentes" id="aviso-pendentes" hidden></section>
+
+    <form class="nova-tarefa" id="form-tarefa" autocomplete="off">
+      <input class="campo" id="campo-tarefa" maxlength="140" placeholder="O que fazer hoje?" aria-label="Nova tarefa" enterkeyhint="done" />
+      <button class="botao botao-primario" type="submit" aria-label="Adicionar tarefa">Adicionar</button>
+    </form>
+
+    <ul class="lista-tarefas" id="lista-tarefas"></ul>
+    <p class="vazio" id="vazio" hidden>Nenhuma tarefa ainda.<br>Escreva a primeira acima. Quanto menor, melhor.</p>
+  </main>
+
+  <!-- Cronômetro "Começar agora" (desenhado por js/foco.js) -->
+  <div class="foco" id="foco" hidden></div>
+
+  <!-- Aviso rápido no pé da tela -->
+  <div class="aviso" id="aviso" role="status" aria-live="polite"></div>
+
+  <!-- Scripts: a ORDEM importa (config primeiro, a tela por último) -->
+  <script src="js/config.js"></script>
+  <script src="js/logica.js"></script>
+  <script src="js/utilitarios.js"></script>
+  <script src="js/armazenamento.js"></script>
+  <script src="js/foco.js"></script>
+  <script src="js/hoje.js"></script>
+  <script src="js/pwa.js"></script>
+</body>
+</html>

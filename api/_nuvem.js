@@ -17,7 +17,7 @@ const MAX_CORPO = 300 * 1024;            // uma lista grande tem poucos KB
 const DIAS_SESSAO = 30;
 const TENTATIVAS_MAX = 8, JANELA_MS = 5 * 60 * 1000;
 
-const urlBanco = () => process.env.DATABASE_URL || process.env.POSTGRES_URL || '';
+const urlBanco = () => process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.DATABASE_URL_DATABASE_URL || process.env.DATABASE_URL_POSTGRES_URL || '';   // a Vercel pode pôr um prefixo no nome
 const segredo = () => process.env.SESSAO_SEGREDO || crypto.createHash('sha256').update('startnow-sessao|' + urlBanco()).digest('hex');
 const b64 = (t) => Buffer.from(t).toString('base64url');
 const mac = (corpo) => crypto.createHmac('sha256', segredo()).update(corpo).digest('base64url');

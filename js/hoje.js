@@ -100,9 +100,11 @@ App.hoje = (function () {
       /* uma seção por categoria, com tudo dela (de hoje, diárias e concluídas), em ordem de horário */
       L.porCategoria(it.todos, dados.categorias).forEach(function (g) {
         var feitas = g.itens.filter(function (i) { return i.feita; }).length, nome = g.categoria ? g.categoria.nome : "Sem categoria";
-        html += '<section class="grupo grupo-cat" style="--cat:' + (g.categoria ? g.categoria.cor : "var(--borda-forte)") + '"><h2 class="grupo-titulo"><i class="cat-ponto"></i>' + u.escaparHtml(nome) +
-          '<span class="grupo-qtd">' + feitas + "/" + g.itens.length + "</span></h2>" +
-          '<ul class="lista-tarefas">' + g.itens.map(function (i) { return linha(i, false); }).join("") + "</ul></section>";
+        var idCat = g.categoria ? g.categoria.id : "_sem", recolhida = !!dados.recolhidas[idCat];
+        html += '<section class="grupo grupo-cat' + (recolhida ? " recolhida" : "") + '" style="--cat:' + (g.categoria ? g.categoria.cor : "var(--borda-forte)") + '">' +
+          '<h2 class="grupo-titulo"><button type="button" class="grupo-botao" data-recolher="' + u.escaparHtml(idCat) + '" aria-expanded="' + (!recolhida) + '" title="' + (recolhida ? "Mostrar" : "Recolher") + ' ' + u.escaparHtml(nome) + '">' +
+            '<i class="cat-ponto"></i><span class="grupo-nome">' + u.escaparHtml(nome) + '</span><span class="grupo-qtd">' + feitas + "/" + g.itens.length + '</span><i class="seta" aria-hidden="true"></i></button></h2>' +
+          '<ul class="lista-tarefas"' + (recolhida ? " hidden" : "") + ">" + g.itens.map(function (i) { return linha(i, false); }).join("") + "</ul></section>";
       });
     } else {
       var tituloDia = ehHoje ? "Tarefas de hoje" : "Tarefas para " + L.nomeDoDia(selecionado, hoje);
@@ -175,14 +177,23 @@ App.hoje = (function () {
     App.foco.iniciar({ id: item.chave, texto: item.texto }, t.seg, t.rotulo);
   }
 
-  /* Tocar na tarefa abre a edição (horário, texto, categoria). */
+  /* Tocar na tarefa abre a edição (texto, dia, repetição, horário e categoria). */
   function editar(chave) {
     var item = achar(chave, selecionado); if (!item) return;
-    App.editar.abrir(item, dados, function (feito) {
+    App.editar.abrir(item, dados, hoje, function (r, est) {
       salvar(); desenhar();
-      var novo = achar(chave, selecionado);
-      var batem = novo && novo.inicio && novo.fim ? L.conflitos(itensDe(selecionado).todos.filter(function (i) { return i.chave !== chave; }), novo.inicio, novo.fim) : [];
-      App.aviso(batem.length ? "Salvo. Atenção: bate com “" + batem[0].texto + "” (" + L.rotuloHorario(batem[0].inicio, batem[0].fim) + ")." : "Tarefa atualizada.");
+      var novo = achar(r.chave, selecionado), msg;
+      if (!novo) {   // a tarefa saiu desta tela (mudou de dia ou não cai mais neste dia da semana)
+        var quando = est.repete === "diaria" ? "todo dia" : L.rotuloDias(est.diasSel);
+        msg = est.repete === "nenhuma" ? "Salvo. A tarefa foi para " + L.nomeDoDia(est.dia, hoje) + "."
+            : (!est.eraRotina && est.dia > selecionado) ? "Salvo. Ela começa " + (L.nomeDoDia(est.dia, hoje) === "hoje" ? "hoje" : L.nomeDoDia(est.dia, hoje)) + " e se repete (" + quando + ")."
+            : "Salvo. Ela não cai neste dia (" + quando + ").";
+      } else {
+        var batem = novo.inicio && novo.fim ? L.conflitos(itensDe(selecionado).todos.filter(function (i) { return i.chave !== r.chave; }), novo.inicio, novo.fim) : [];
+        msg = batem.length ? "Salvo. Atenção: bate com “" + batem[0].texto + "” (" + L.rotuloHorario(batem[0].inicio, batem[0].fim) + ")."
+            : novo.repete ? "Tarefa atualizada (" + novo.repete + ")." : "Tarefa atualizada.";
+      }
+      App.aviso(msg);
     });
   }
 
@@ -209,6 +220,12 @@ App.hoje = (function () {
       else if (c) App.categorias.abrir(dados, salvar, function () { formulario.atualizarCategorias(); desenhar(); });
     });
     $("grupos").addEventListener("click", function (ev) {
+      var rec = ev.target.closest("[data-recolher]");
+      if (rec) {   // encolher / abrir a categoria (a escolha fica guardada)
+        var id = rec.getAttribute("data-recolher");
+        if (dados.recolhidas[id]) delete dados.recolhidas[id]; else dados.recolhidas[id] = true;
+        salvar(); desenhar(); return;
+      }
       var b = ev.target.closest("[data-acao]"), li = ev.target.closest("[data-chave]");
       if (!b || !li) return;
       var acao = b.getAttribute("data-acao"), chave = li.getAttribute("data-chave");

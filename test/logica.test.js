@@ -191,7 +191,7 @@ test('editarItem: muda horário, texto e categoria; recusa dados inválidos sem 
   const dados = L.migrar({ tarefas: [L.novaTarefa('reunião', HOJE, 1, 140, { categoriaId: 'c-trabalho', inicio: '09:00', fim: '10:00' })],
                            rotinas: [L.novaRotina('estudar', 'diaria', [], HOJE, 2, 140, { inicio: '20:00', fim: '21:00' })] });
   const idT = dados.tarefas[0].id, idR = 'r:' + dados.rotinas[0].id;
-  assert.deepEqual(L.editarItem(dados, idT, { texto: '  Reunião   com a equipe ', categoriaId: 'c-casa', inicio: '10:00', fim: '11:30' }), { ok: true });
+  assert.deepEqual(L.editarItem(dados, idT, { texto: '  Reunião   com a equipe ', categoriaId: 'c-casa', inicio: '10:00', fim: '11:30' }), { ok: true, chave: idT });
   assert.deepEqual([dados.tarefas[0].texto, dados.tarefas[0].categoriaId, dados.tarefas[0].inicio, dados.tarefas[0].fim], ['Reunião com a equipe', 'c-casa', '10:00', '11:30']);
   // tirar o horário
   L.editarItem(dados, idT, { texto: 'x', categoriaId: null, inicio: '', fim: '' });
@@ -209,4 +209,59 @@ test('editarItem: muda horário, texto e categoria; recusa dados inválidos sem 
   assert.equal(JSON.stringify(dados), antes);
   // categoria que não existe vira "sem categoria"
   L.editarItem(dados, idT, { texto: 'ok', categoriaId: 'c-fantasma', inicio: '', fim: '' }); assert.equal(dados.tarefas[0].categoriaId, null);
+});
+
+test('rotuloDias: nomes bonitos para os dias escolhidos', () => {
+  assert.equal(L.rotuloDias([0, 1, 2, 3, 4, 5, 6]), 'todo dia'); assert.equal(L.rotuloDias([1, 2, 3, 4, 5]), 'de segunda a sexta'); assert.equal(L.rotuloDias([6, 0]), 'fins de semana');
+  assert.equal(L.rotuloDias([2]), 'toda terça'); assert.equal(L.rotuloDias([1, 3]), 'toda segunda e quarta'); assert.equal(L.rotuloDias([5, 1, 3]), 'toda segunda, quarta e sexta');
+  assert.deepEqual(L.limparDias([5, 1, 1, 9, -2, 3]), [1, 3, 5]);
+  const r = L.novaRotina('x', 'semanal', [5, 1, 3], HOJE, 1); assert.equal(L.rotuloRepete(r), 'toda segunda, quarta e sexta');
+});
+
+test('editarItem muda o DIA de uma tarefa única', () => {
+  const dados = L.migrar({ tarefas: [L.novaTarefa('dentista', HOJE, 5)] });
+  const id = dados.tarefas[0].id;
+  assert.deepEqual(L.editarItem(dados, id, { texto: 'dentista', inicio: '', fim: '', dia: '2026-10-30' }), { ok: true, chave: id });
+  assert.equal(dados.tarefas[0].dia, '2026-10-30');
+  L.editarItem(dados, id, { texto: 'dentista', inicio: '', fim: '' });           // sem "dia": não mexe
+  assert.equal(dados.tarefas[0].dia, '2026-10-30');
+});
+
+test('editarItem converte única em rotina (dias escolhidos) e mantém o que já estava feito', () => {
+  const dados = L.migrar({ tarefas: [L.novaTarefa('academia', HOJE, 5, 140, { categoriaId: 'c-casa', inicio: '18:00', fim: '19:00' })] });
+  dados.tarefas[0].feitaEm = ms(HOJE); const id = dados.tarefas[0].id, criada = dados.tarefas[0].criadaEm;
+  const r = L.editarItem(dados, id, { texto: 'academia', categoriaId: 'c-casa', inicio: '18:00', fim: '19:00', repete: 'semanal', diasSemana: [1, 3, 5], dia: HOJE });
+  assert.equal(r.ok, true); assert.match(r.chave, /^r:/);
+  assert.equal(dados.tarefas.length, 0); assert.equal(dados.rotinas.length, 1);
+  const rot = dados.rotinas[0];
+  assert.deepEqual([rot.tipo, rot.diasSemana, rot.desde, rot.inicio, rot.fim, rot.categoriaId, rot.criadaEm], ['semanal', [1, 3, 5], HOJE, '18:00', '19:00', 'c-casa', criada]);
+  assert.equal(dados.feitas[L.chaveFeita(rot.id, HOJE)], ms(HOJE));              // já estava feita hoje: continua feita
+  assert.equal(L.itensDoDia(dados, '2026-10-30').rotinas.length, 1);              // sexta: aparece
+  assert.equal(L.itensDoDia(dados, '2026-10-29').rotinas.length, 0);              // quinta: não
+  // semanal sem nenhum dia: erro, nada muda
+  const d2 = L.migrar({ tarefas: [L.novaTarefa('x', HOJE, 1)] });
+  assert.match(L.editarItem(d2, d2.tarefas[0].id, { texto: 'x', repete: 'semanal', diasSemana: [] }).erro, /pelo menos um dia/); assert.equal(d2.tarefas.length, 1); assert.equal(d2.rotinas.length, 0);
+});
+
+test('editarItem muda os dias de uma rotina, vira diária, e vira tarefa única', () => {
+  const dados = L.migrar({ rotinas: [L.novaRotina('estudar', 'semanal', [2], HOJE, 3)] });
+  const chave = 'r:' + dados.rotinas[0].id;
+  assert.equal(L.editarItem(dados, chave, { texto: 'estudar', inicio: '', fim: '', repete: 'semanal', diasSemana: [2, 4] }).ok, true);
+  assert.deepEqual(dados.rotinas[0].diasSemana, [2, 4]);
+  assert.equal(L.itensDoDia(dados, '2026-10-29').rotinas.length, 1);              // quinta agora aparece
+  L.editarItem(dados, chave, { texto: 'estudar', repete: 'diaria' });
+  assert.deepEqual([dados.rotinas[0].tipo, dados.rotinas[0].diasSemana.length], ['diaria', 7]);
+  // rotina -> única numa data; o que já estava feito nesse dia continua feito
+  dados.feitas[L.chaveFeita(dados.rotinas[0].id, '2026-10-30')] = ms('2026-10-30');
+  const r = L.editarItem(dados, chave, { texto: 'estudar', repete: 'nenhuma', dia: '2026-10-30' });
+  assert.equal(r.ok, true); assert.doesNotMatch(r.chave, /^r:/);
+  assert.equal(dados.rotinas.length, 0); assert.equal(dados.tarefas.length, 1);
+  assert.deepEqual([dados.tarefas[0].dia, !!dados.tarefas[0].feitaEm], ['2026-10-30', true]);
+  // rotina -> única sem informar o dia: erro e nada muda
+  const d3 = L.migrar({ rotinas: [L.novaRotina('a', 'diaria', [], HOJE, 1)] });
+  assert.match(L.editarItem(d3, 'r:' + d3.rotinas[0].id, { texto: 'a', repete: 'nenhuma' }).erro, /dia/); assert.equal(d3.rotinas.length, 1);
+});
+
+test('migrar cria o mapa de categorias recolhidas', () => {
+  assert.deepEqual(L.migrar({}).recolhidas, {}); assert.deepEqual(L.migrar({ recolhidas: { 'c-casa': true } }).recolhidas, { 'c-casa': true });
 });

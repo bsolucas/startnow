@@ -12,7 +12,7 @@
    Categorias (subcategorias) são da pessoa: { id, nome, cor }. Já vêm 6 prontas e ela cria, renomeia e apaga.
 
    Dados completos de uma pessoa:
-     { versao: 3, nome, tarefas: [], rotinas: [], feitas: {}, categorias: [], visao: "tipo"|"categoria", foco: null }
+     { versao: 3, nome, tarefas: [], rotinas: [], feitas: {}, categorias: [], visao: "tipo"|"categoria", recolhidas: {}, foco: null }
 
    Regra da sequência (dias seguidos): um dia conta quando pelo menos UMA tarefa (única ou rotina) foi
    concluída nele. A barra é baixa de propósito: o objetivo é começar, não fazer tudo.
@@ -66,16 +66,26 @@
   /* Tarefa que se repete. tipo "diaria" = todo dia; "semanal" = nos dias da semana informados (ex.: [2] = toda terça). */
   L.novaRotina = function (texto, tipo, diasSemana, desde, agora, max, extra) {
     var t = limparTexto(texto, max); if (!t) return null;
-    var dias = tipo === "diaria" ? [0, 1, 2, 3, 4, 5, 6] : (diasSemana || []).filter(function (d, i, a) { return d >= 0 && d <= 6 && a.indexOf(d) === i; }).sort();
+    var dias = tipo === "diaria" ? [0, 1, 2, 3, 4, 5, 6] : L.limparDias(diasSemana);
     if (!dias.length) return null;
     return aplicarExtra({ id: novoId("r", agora), texto: t, tipo: tipo === "diaria" ? "diaria" : "semanal", diasSemana: dias, desde: desde, criadaEm: agora }, extra);
   };
   /* A rotina acontece neste dia? (só a partir do dia em que foi criada) */
   L.rotinaOcorre = function (rotina, dia) { return dia >= rotina.desde && rotina.diasSemana.indexOf(L.diaSemana(dia)) !== -1; };
   L.chaveFeita = function (rotinaId, dia) { return rotinaId + "|" + dia; };
-  L.rotuloRepete = function (rotina) {
-    if (rotina.tipo === "diaria") return "todo dia";
-    return "toda " + rotina.diasSemana.map(function (d) { return L.DIAS_LONGOS[d]; }).join(" e ");
+  /* "todo dia", "de segunda a sexta", "fins de semana", "toda terça" ou "toda segunda, quarta e sexta". */
+  L.rotuloDias = function (dias) {
+    var d = dias.slice().sort().join(",");
+    if (d === "0,1,2,3,4,5,6") return "todo dia";
+    if (d === "1,2,3,4,5") return "de segunda a sexta";
+    if (d === "0,6") return "fins de semana";
+    var nomes = dias.slice().sort().map(function (x) { return L.DIAS_LONGOS[x]; });
+    return "toda " + (nomes.length > 1 ? nomes.slice(0, -1).join(", ") + " e " + nomes[nomes.length - 1] : nomes[0]);
+  };
+  L.rotuloRepete = function (rotina) { return rotina.tipo === "diaria" ? "todo dia" : L.rotuloDias(rotina.diasSemana); };
+  /* Deixa só dias da semana válidos (0 a 6), sem repetir, em ordem. */
+  L.limparDias = function (dias) {
+    return (dias || []).filter(function (d, i, a) { return d >= 0 && d <= 6 && a.indexOf(d) === i; }).sort();
   };
 
   /* Tudo o que existe num dia, já separado em "únicas" e "rotinas". Cada item:
@@ -154,8 +164,13 @@
   };
 
   /* ---------- editar uma tarefa ---------- */
-  /* Muda texto, categoria e horário de uma tarefa. "chave" é a do item (id da tarefa única ou "r:<id>" da rotina:
-     no caso da rotina, a mudança vale para todos os dias em que ela se repete). Devolve { ok } ou { ok: false, erro }. */
+  /* Muda uma tarefa. "chave" é a do item (id da tarefa única ou "r:<id>" da rotina).
+     campos: { texto, categoriaId, inicio, fim,  dia?, repete?: "nenhuma"|"semanal"|"diaria", diasSemana?: [0..6] }
+       • sem "repete": mantém o tipo que a tarefa já tem;
+       • "nenhuma" = só num dia (use "dia"); "semanal" = nos dias da semana escolhidos; "diaria" = todo dia;
+       • trocar o tipo converte: única -> rotina (começa em "dia") ou rotina -> única (no "dia").
+     Numa rotina que continua rotina, a mudança vale para todos os dias dela.
+     Devolve { ok: true, chave } (a chave pode mudar se a tarefa foi convertida) ou { ok: false, erro }. Nada muda se der erro. */
   L.editarItem = function (dados, chave, campos, max) {
     var ehRotina = String(chave).indexOf("r:") === 0, id = ehRotina ? chave.slice(2) : chave;
     var alvo = (ehRotina ? dados.rotinas : dados.tarefas).filter(function (t) { return t.id === id; })[0];
@@ -165,8 +180,41 @@
     var h = L.validarHorario(campos.inicio, campos.fim);
     if (!h.ok) return { ok: false, erro: h.erro };
     var cat = campos.categoriaId && (dados.categorias || []).some(function (c) { return c.id === campos.categoriaId; }) ? campos.categoriaId : null;
-    alvo.texto = texto; alvo.categoriaId = cat; alvo.inicio = h.inicio; alvo.fim = h.fim;
-    return { ok: true };
+    var extra = { categoriaId: cat, inicio: h.inicio, fim: h.fim };
+    var antes = ehRotina ? alvo.tipo : "nenhuma";
+    var repete = campos.repete === "diaria" || campos.repete === "semanal" || campos.repete === "nenhuma" ? campos.repete : antes;
+    var dias = Array.isArray(campos.diasSemana) ? L.limparDias(campos.diasSemana) : (ehRotina ? alvo.diasSemana.slice() : []);
+    if (repete === "semanal" && !dias.length) return { ok: false, erro: "Escolha pelo menos um dia da semana." };
+    var dia = campos.dia || null, agora = campos.agora || Date.now();
+
+    if (!ehRotina && repete === "nenhuma") {                    // única continua única (talvez em outro dia)
+      alvo.texto = texto; alvo.categoriaId = extra.categoriaId; alvo.inicio = extra.inicio; alvo.fim = extra.fim;
+      if (dia) alvo.dia = dia;
+      return { ok: true, chave: alvo.id };
+    }
+    if (ehRotina && repete !== "nenhuma") {                     // rotina continua rotina (diária ou semanal)
+      alvo.texto = texto; alvo.categoriaId = extra.categoriaId; alvo.inicio = extra.inicio; alvo.fim = extra.fim;
+      alvo.tipo = repete; alvo.diasSemana = repete === "diaria" ? [0, 1, 2, 3, 4, 5, 6] : dias;
+      if (dia) alvo.desde = dia;
+      return { ok: true, chave: "r:" + alvo.id };
+    }
+    if (!ehRotina) {                                            // única vira rotina
+      var nova = L.novaRotina(texto, repete, dias, dia || alvo.dia, agora, max, extra);
+      if (!nova) return { ok: false, erro: "Não foi possível repetir esta tarefa." };
+      nova.criadaEm = alvo.criadaEm;
+      if (alvo.feitaEm) dados.feitas[L.chaveFeita(nova.id, alvo.dia)] = alvo.feitaEm;   // se já estava feita, continua feita naquele dia
+      dados.tarefas = dados.tarefas.filter(function (t) { return t.id !== alvo.id; });
+      dados.rotinas.push(nova);
+      return { ok: true, chave: "r:" + nova.id };
+    }
+    if (!dia) return { ok: false, erro: "Escolha o dia da tarefa." };   // rotina vira única
+    var unica = L.novaTarefa(texto, dia, agora, max, extra);
+    unica.criadaEm = alvo.criadaEm;
+    var feitaEm = dados.feitas[L.chaveFeita(alvo.id, dia)];
+    if (feitaEm) unica.feitaEm = feitaEm;
+    dados.rotinas = dados.rotinas.filter(function (r) { return r.id !== alvo.id; });
+    dados.tarefas.push(unica);
+    return { ok: true, chave: unica.id };
   };
 
   /* ---------- categorias ---------- */
@@ -267,6 +315,7 @@
     if (dados.foco === undefined) dados.foco = null;
     if (!Array.isArray(dados.categorias)) dados.categorias = L.categoriasPadrao();
     if (dados.visao !== "categoria") dados.visao = "tipo";
+    if (!dados.recolhidas || typeof dados.recolhidas !== "object") dados.recolhidas = {};   // categorias "encolhidas" na visão por categoria
     if (nome && !dados.nome) dados.nome = nome;
     dados.versao = 3;
     return dados;

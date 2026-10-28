@@ -10,11 +10,13 @@ A ideia é simples: você não precisa terminar a tarefa, só ficar 5 minutos ne
 - **Criar lista de tarefas:** a pessoa nova passa por uma tela para montar a lista. Para cada tarefa você escolhe **em que dia** (hoje, amanhã... até 7 dias) e se ela **se repete**: só naquele dia, **toda semana** (ex.: toda terça) ou **todo dia**.
 - **Categorias (subcategorias):** organize as tarefas por área da vida. Já vêm prontas **Trabalho, Casa, Estudos, Tempo livre, Compromissos e Lista de supermercado**, e você cria, renomeia, troca a cor e apaga as suas pelo botão **Categorias** (apagar uma categoria não apaga as tarefas: elas ficam "sem categoria"). Cada tarefa tem uma categoria opcional.
 - **Horário de cada tarefa:** em "Categoria, horário e repetição" você marca **das 09:00 até 10:30** (o fim é opcional). A lista fica em ordem de horário, a linha mostra o horário e a duração ("09:00–10:30 · 1h30"), e o app **avisa** se o horário bate com outra tarefa do mesmo dia (sem impedir de salvar). Valem para tarefas únicas e para as que se repetem.
-- **Duas formas de ver a lista:** **Por tipo** (tarefas de hoje, diárias e concluídas) ou **Por categoria** (uma seção para cada categoria, com tudo dela, como numa lista de supermercado, mostrando quantas já foram feitas). A escolha fica guardada.
+- **Duas formas de ver a lista:** **Por tipo** (tarefas de hoje, diárias e concluídas) ou **Por categoria** (uma seção para cada categoria, com tudo dela, como numa lista de supermercado, mostrando quantas já foram feitas). Na visão por categoria, **toque no título da categoria para encolher ou abrir** a lista dela. As escolhas ficam guardadas.
 - **Faixa da semana:** os próximos 7 dias no topo. Toque num dia para ver e planejar as tarefas dele. Um pontinho mostra se o dia tem tarefas (azul) ou se está tudo feito (verde).
 - **Tarefas separadas em grupos:** *Tarefas de hoje* (ou *para quarta*, etc.), *Tarefas diárias* (as que se repetem) e *Concluídas*.
 - **Cronômetro da tarefa ("Começar agora"):** o botão grande pega a primeira tarefa pendente de hoje (ou use o ▶ de uma tarefa específica). O **tempo vem da própria tarefa**: se ela tem horário (das 09:00 às 10:30), o cronômetro conta **1h30**; se não tem, conta **5 minutos** (o truque contra a procrastinação: só ficar um pouco nela). Dá para **pausar e retomar**. Quando o tempo acaba, toca um som, vibra e pergunta: *terminei*, *mais 5 minutos* ou *parar por agora*. O cronômetro continua certo mesmo se a tela travar ou o app for fechado, e em pausa ele guarda quanto faltava.
-- **Editar uma tarefa:** toque no nome dela na lista para mudar o **horário** (ou tirar o horário), o texto e a categoria. Se ela se repete, a folha avisa que a mudança vale para todos os dias dela. Se o novo horário bate com outra tarefa, o app avisa.
+- **Editar uma tarefa:** toque no nome dela na lista para mudar o **dia**, a **repetição**, o **horário** (ou tirar o horário), o texto e a categoria. Uma tarefa de um dia só pode passar a se repetir (e o contrário). Se ela já se repete, a folha avisa que a mudança vale para todos os dias dela. Se o novo horário bate com outra tarefa, o app avisa.
+- **Repetição por dias da semana:** em "Repetir?" escolha **Só num dia**, **Dias da semana** (e marque quais: por exemplo seg, qua e sex) ou **Todo dia**. O app mostra "toda segunda, quarta e sexta", "de segunda a sexta" ou "fins de semana".
+- **Seletor de horário:** hora e minuto em duas listas (minutos de 5 em 5), sempre em 24 horas. O valor só muda quando você escolhe e fica guardado, sem "pular" sozinho como o campo de hora nativo do celular.
 - **Tarefas de ontem:** o que ficou sem fazer aparece num aviso com *Trazer para hoje* ou *Dispensar*. As tarefas que se repetem não acumulam.
 - **Sequência:** dias seguidos com **pelo menos uma** tarefa feita (única ou diária). Só quebra quando o dia termina sem nenhuma.
 - **Desfazer:** apagou sem querer? O aviso tem o botão *Desfazer*. Apagar uma tarefa que se repete pede confirmação, porque ela some de todos os dias.
@@ -59,11 +61,12 @@ js/personalizar.js   o painel "Personalizar"
 js/utilitarios.js    escapar texto, data por extenso, ícones, aviso rápido
 js/armazenamento.js  onde os dados ficam, uma gaveta por pessoa (hoje: no aparelho). Trocar por nuvem mexe só aqui
 js/perfil.js         "Oi, digite seu nome" e "Criar lista de tarefas"
+js/horas.js          o seletor de horário (hora e minuto em listas)
 js/formulario.js     o formulário de nova tarefa (dia, categoria, horário e repetir)
 js/categorias.js     o painel de categorias
 js/iniciar.js        decide o que mostrar ao abrir
 js/foco.js           o cronômetro da tarefa (tempo da tarefa, pausar e retomar)
-js/editar.js         a folha de editar uma tarefa
+js/editar.js         a folha de editar uma tarefa (dia, repetição, horário, categoria)
 js/hoje.js           a tela principal
 manifest.json, service-worker.js, js/pwa.js, icones/   instalar no celular e abrir sem internet
 ```

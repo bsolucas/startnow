@@ -81,7 +81,11 @@ App.perfil = (function () {
     var extra = { categoriaId: def.categoriaId || null, inicio: h.inicio, fim: h.fim };
     var agora = Date.now(), desde = def.dia < hoje ? hoje : def.dia, item;
     if (def.repete === "diaria") item = L.novaRotina(def.texto, "diaria", [], desde, agora, cfg.MAX_TEXTO_TAREFA, extra);
-    else if (def.repete === "semanal") item = L.novaRotina(def.texto, "semanal", [L.diaSemana(def.dia)], desde, agora, cfg.MAX_TEXTO_TAREFA, extra);
+    else if (def.repete === "semanal") {
+      var dias = L.limparDias(def.diasSemana && def.diasSemana.length ? def.diasSemana : []);
+      if (!dias.length) return { ok: false, erro: "Escolha pelo menos um dia da semana." };
+      item = L.novaRotina(def.texto, "semanal", dias, desde, agora, cfg.MAX_TEXTO_TAREFA, extra);
+    }
     else item = L.novaTarefa(def.texto, def.dia, agora, cfg.MAX_TEXTO_TAREFA, extra);
     if (!item) return { ok: false, erro: "Escreva a tarefa primeiro." };
     var ehRotina = item.id.charAt(0) === "r";

@@ -4,11 +4,11 @@
    Estratégia "rede primeiro": tenta a internet (para pegar a versão mais nova) e, se falhar,
    usa a cópia guardada. Ao mudar qualquer arquivo da lista, aumente VERSAO_CACHE.
    ============================================================================= */
-const VERSAO_CACHE = 'startnow-v3';
+const VERSAO_CACHE = 'startnow-v4';
 const ARQUIVOS = [
   './', 'index.html', 'manifest.json',
   'css/base.css', 'css/componentes.css', 'css/hoje.css',
-  'js/tema.js', 'js/config.js', 'js/logica.js', 'js/utilitarios.js', 'js/armazenamento.js', 'js/personalizar.js', 'js/categorias.js', 'js/editar.js', 'js/foco.js', 'js/formulario.js', 'js/perfil.js', 'js/hoje.js', 'js/iniciar.js', 'js/pwa.js',
+  'js/tema.js', 'js/config.js', 'js/logica.js', 'js/utilitarios.js', 'js/armazenamento.js', 'js/personalizar.js', 'js/categorias.js', 'js/editar.js', 'js/foco.js', 'js/horas.js', 'js/formulario.js', 'js/perfil.js', 'js/hoje.js', 'js/iniciar.js', 'js/pwa.js',
   'icones/icone-192.png', 'icones/icone-512.png', 'icones/apple-touch-icon.png'
 ];
 

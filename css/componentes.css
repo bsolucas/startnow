@@ -34,7 +34,7 @@
 /* Aviso rápido no pé da tela */
 .aviso {
   position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom)); transform: translate(-50%, 20px); z-index: 80;
-  display: flex; align-items: center; gap: 12px; max-width: calc(100vw - 32px); padding: 11px 18px; border-radius: 999px;
+  display: flex; align-items: center; gap: 12px; width: max-content; max-width: calc(100vw - 32px); padding: 11px 18px; border-radius: 999px;
   background: var(--superficie-3); border: 1px solid var(--borda); box-shadow: var(--sombra);
   font-weight: 600; font-size: 0.95rem; opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.2s;
 }

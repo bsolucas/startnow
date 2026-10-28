@@ -104,11 +104,78 @@ test('nome = login: limpa, ignora acento e maiúscula, gera chave estável', () 
 test('migrar leva dados antigos para o formato atual sem perder nada', () => {
   const v1 = { versao: 1, tarefas: [tarefa('a', HOJE, null)], foco: null };
   const v2 = L.migrar(v1, 'Maria');
-  assert.equal(v2.versao, 2); assert.deepEqual(v2.rotinas, []); assert.deepEqual(v2.feitas, {}); assert.equal(v2.tarefas.length, 1); assert.equal(v2.nome, 'Maria');
+  assert.equal(v2.versao, 3); assert.deepEqual(v2.rotinas, []); assert.deepEqual(v2.feitas, {}); assert.equal(v2.tarefas.length, 1); assert.equal(v2.nome, 'Maria');
   assert.deepEqual(L.migrar(null).tarefas, []); assert.equal(L.migrar({ nome: 'Ana' }, 'Outra').nome, 'Ana');
 });
 
 test('formatarTempo', () => {
   assert.equal(L.formatarTempo(300), '05:00'); assert.equal(L.formatarTempo(65), '01:05');
   assert.equal(L.formatarTempo(-3), '00:00'); assert.equal(L.formatarTempo(299.4), '04:59');
+});
+
+test('horários: normalizar, validar, rótulo, duração e sobreposição', () => {
+  assert.equal(L.normalizarHora('9:05'), '09:05'); assert.equal(L.normalizarHora(' 23:59 '), '23:59'); assert.equal(L.normalizarHora('00:00'), '00:00');
+  for (const ruim of ['24:00', '12:60', '9', '', null, 'abc', '12:5']) assert.equal(L.normalizarHora(ruim), null, String(ruim));
+  assert.deepEqual(L.validarHorario('', ''), { ok: true, inicio: null, fim: null });
+  assert.deepEqual(L.validarHorario('09:00', ''), { ok: true, inicio: '09:00', fim: null });
+  assert.deepEqual(L.validarHorario('9:00', '10:30'), { ok: true, inicio: '09:00', fim: '10:30' });
+  assert.equal(L.validarHorario('', '10:00').ok, false);                  // fim sem início
+  assert.equal(L.validarHorario('10:00', '10:00').ok, false);             // fim igual ao início
+  assert.match(L.validarHorario('11:00', '10:00').erro, /depois do início/);
+  assert.equal(L.validarHorario('25:00', '').ok, false);
+  assert.equal(L.rotuloHorario('09:00', '10:30'), '09:00–10:30'); assert.equal(L.rotuloHorario('09:00', null), 'a partir das 09:00'); assert.equal(L.rotuloHorario(null, null), '');
+  assert.equal(L.duracao('09:00', '10:30'), '1h30'); assert.equal(L.duracao('09:00', '09:45'), '45min'); assert.equal(L.duracao('09:00', '11:00'), '2h'); assert.equal(L.duracao('09:00', null), '');
+  assert.equal(L.sobrepoe('09:00', '10:00', '09:30', '10:30'), true);
+  assert.equal(L.sobrepoe('09:00', '10:00', '10:00', '11:00'), false);    // encostar não é conflito
+  assert.equal(L.sobrepoe('09:00', '10:00', '09:30', null), false);       // sem fim não dá para saber
+  assert.equal(L.sobrepoe('09:00', '12:00', '10:00', '11:00'), true);     // um dentro do outro
+});
+
+test('ordenar: quem tem horário vem antes (do mais cedo ao mais tarde), feitas no fim', () => {
+  const t = (id, inicio, feita, criada) => ({ id, inicio, feita: !!feita, criadaEm: criada });
+  const lista = [t('sem1', null, false, 1), t('tarde', '15:00', false, 5), t('feita', '08:00', true, 2), t('cedo', '08:30', false, 6), t('sem2', null, false, 3)];
+  assert.deepEqual(L.ordenar(lista).map(x => x.id), ['cedo', 'tarde', 'sem1', 'sem2', 'feita']);
+});
+
+test('tarefas e rotinas guardam categoria e horário, e itensDoDia repassa', () => {
+  const t = L.novaTarefa('reunião', HOJE, 1, 140, { categoriaId: 'c-trabalho', inicio: '09:00', fim: '10:00' });
+  assert.equal(t.categoriaId, 'c-trabalho'); assert.equal(t.inicio, '09:00'); assert.equal(t.fim, '10:00');
+  const sem = L.novaTarefa('algo', HOJE, 2); assert.equal(sem.categoriaId, null); assert.equal(sem.inicio, null);
+  const r = L.novaRotina('estudar', 'diaria', [], HOJE, 3, 140, { categoriaId: 'c-estudos', inicio: '20:00', fim: '21:00' });
+  const itens = L.itensDoDia(dadosCom([t], [r]), HOJE).todos;
+  assert.deepEqual(itens.map(i => [i.texto, i.categoriaId, i.inicio, i.fim]), [['reunião', 'c-trabalho', '09:00', '10:00'], ['estudar', 'c-estudos', '20:00', '21:00']]);
+});
+
+test('conflitos: acha só tarefas pendentes que se sobrepõem', () => {
+  const itens = [{ texto: 'a', inicio: '09:00', fim: '10:00', feita: false }, { texto: 'b', inicio: '09:00', fim: '10:00', feita: true }, { texto: 'c', inicio: '14:00', fim: '15:00', feita: false }, { texto: 'd', inicio: null, fim: null, feita: false }];
+  assert.deepEqual(L.conflitos(itens, '09:30', '10:30').map(i => i.texto), ['a']);
+  assert.deepEqual(L.conflitos(itens, '10:00', '11:00'), []);
+  assert.deepEqual(L.conflitos(itens, '08:00', '23:00').map(i => i.texto), ['a', 'c']);
+});
+
+test('categorias: padrão, nova (sem repetir), remover mantém as tarefas e agrupar', () => {
+  const padrao = L.categoriasPadrao();
+  assert.deepEqual(padrao.map(c => c.nome), ['Trabalho', 'Casa', 'Estudos', 'Tempo livre', 'Compromissos', 'Lista de supermercado']);
+  assert.equal(new Set(padrao.map(c => c.id)).size, 6);
+  assert.equal(L.novaCategoria('  ', null, padrao, 1), null);
+  assert.equal(L.novaCategoria('trabalho', null, padrao, 1), null);        // já existe (maiúscula não importa)
+  assert.equal(L.novaCategoria('ESTUDOS', null, padrao, 1), null);
+  const nova = L.novaCategoria('  Academia  ', null, padrao, 5); assert.equal(nova.nome, 'Academia'); assert.match(nova.cor, /^#[0-9a-f]{6}$/);
+  assert.equal(L.novaCategoria('x'.repeat(60), null, [], 1).nome.length, 24);
+
+  const dados = L.migrar({ tarefas: [L.novaTarefa('a', HOJE, 1, 140, { categoriaId: 'c-casa' }), L.novaTarefa('b', HOJE, 2, 140, { categoriaId: 'c-trabalho' })],
+                           rotinas: [L.novaRotina('c', 'diaria', [], HOJE, 3, 140, { categoriaId: 'c-casa' })] });
+  const grupos = L.porCategoria(L.itensDoDia(dados, HOJE).todos, dados.categorias);
+  assert.deepEqual(grupos.map(g => [g.categoria.nome, g.itens.map(i => i.texto)]), [['Trabalho', ['b']], ['Casa', ['a', 'c']]]);   // ordem das categorias, não da criação
+  L.removerCategoria(dados, 'c-casa');
+  assert.equal(dados.categorias.some(c => c.id === 'c-casa'), false); assert.equal(dados.tarefas[0].categoriaId, null); assert.equal(dados.rotinas[0].categoriaId, null);
+  const depois = L.porCategoria(L.itensDoDia(dados, HOJE).todos, dados.categorias);
+  assert.deepEqual(depois.map(g => g.categoria ? g.categoria.nome : 'sem categoria'), ['Trabalho', 'sem categoria']);   // as tarefas continuam, sem categoria
+});
+
+test('migrar: dados antigos ganham as categorias padrão e a visão "tipo"', () => {
+  const d = L.migrar({ versao: 2, tarefas: [], rotinas: [], feitas: {} }, 'Ana');
+  assert.equal(d.versao, 3); assert.equal(d.categorias.length, 6); assert.equal(d.visao, 'tipo');
+  const mantem = L.migrar({ categorias: [{ id: 'x', nome: 'Só esta', cor: '#000000' }], visao: 'categoria' });
+  assert.equal(mantem.categorias.length, 1); assert.equal(mantem.visao, 'categoria');
 });

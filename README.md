@@ -8,6 +8,9 @@ A ideia é simples: você não precisa terminar a tarefa, só ficar 5 minutos ne
 ## O que faz
 - **Oi, digite seu nome:** na primeira tela você digita o seu nome. Ele é o seu **login e a sua senha** neste aparelho: na próxima vez é só digitá-lo de novo (ou deixar marcado *Continuar conectado*, que entra direto). "Maria" e "maria" são a mesma pessoa; um nome novo cria uma pessoa nova.
 - **Criar lista de tarefas:** a pessoa nova passa por uma tela para montar a lista. Para cada tarefa você escolhe **em que dia** (hoje, amanhã... até 7 dias) e se ela **se repete**: só naquele dia, **toda semana** (ex.: toda terça) ou **todo dia**.
+- **Categorias (subcategorias):** organize as tarefas por área da vida. Já vêm prontas **Trabalho, Casa, Estudos, Tempo livre, Compromissos e Lista de supermercado**, e você cria, renomeia, troca a cor e apaga as suas pelo botão **Categorias** (apagar uma categoria não apaga as tarefas: elas ficam "sem categoria"). Cada tarefa tem uma categoria opcional.
+- **Horário de cada tarefa:** em "Categoria, horário e repetição" você marca **das 09:00 até 10:30** (o fim é opcional). A lista fica em ordem de horário, a linha mostra o horário e a duração ("09:00–10:30 · 1h30"), e o app **avisa** se o horário bate com outra tarefa do mesmo dia (sem impedir de salvar). Valem para tarefas únicas e para as que se repetem.
+- **Duas formas de ver a lista:** **Por tipo** (tarefas de hoje, diárias e concluídas) ou **Por categoria** (uma seção para cada categoria, com tudo dela, como numa lista de supermercado, mostrando quantas já foram feitas). A escolha fica guardada.
 - **Faixa da semana:** os próximos 7 dias no topo. Toque num dia para ver e planejar as tarefas dele. Um pontinho mostra se o dia tem tarefas (azul) ou se está tudo feito (verde).
 - **Tarefas separadas em grupos:** *Tarefas de hoje* (ou *para quarta*, etc.), *Tarefas diárias* (as que se repetem) e *Concluídas*.
 - **Começar agora:** o botão grande pega a primeira tarefa pendente de hoje e abre um cronômetro de 5 minutos (ou use o ▶ de uma tarefa específica, até de uma diária). No fim toca um som, vibra e pergunta: *terminei*, *mais 5 minutos* ou *parar por agora*. O cronômetro continua certo mesmo se a tela travar ou o app for fechado.
@@ -42,7 +45,7 @@ Abra `http://localhost:8080`. No celular, abra o endereço do computador na mesm
 ```bash
 node --test test/
 ```
-Testam a lógica (`js/logica.js`: datas, dias da semana, tarefas que se repetem, sequência, nome como login, tempo) e as contas de cor (`js/tema.js`: códigos de cor, contraste legível em todas as cores e nos dois temas).
+Testam a lógica (`js/logica.js`: datas, dias da semana, tarefas que se repetem, categorias, horários e conflitos, sequência, nome como login, tempo) e as contas de cor (`js/tema.js`: códigos de cor, contraste legível em todas as cores e nos dois temas).
 
 ## Como o código está organizado
 ```
@@ -55,7 +58,8 @@ js/personalizar.js   o painel "Personalizar"
 js/utilitarios.js    escapar texto, data por extenso, ícones, aviso rápido
 js/armazenamento.js  onde os dados ficam, uma gaveta por pessoa (hoje: no aparelho). Trocar por nuvem mexe só aqui
 js/perfil.js         "Oi, digite seu nome" e "Criar lista de tarefas"
-js/formulario.js     o formulário de nova tarefa (dia + repetir)
+js/formulario.js     o formulário de nova tarefa (dia, categoria, horário e repetir)
+js/categorias.js     o painel de categorias
 js/iniciar.js        decide o que mostrar ao abrir
 js/foco.js           o cronômetro "Começar agora"
 js/hoje.js           a tela principal

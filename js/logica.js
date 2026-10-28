@@ -7,8 +7,12 @@
        Cada vez que uma rotina é feita num dia, isso é guardado em  dados.feitas["<idDaRotina>|<dia>"] = horário.
    "dia" é sempre a data local, no formato AAAA-MM-DD. Dia da semana: 0 = domingo ... 6 = sábado.
 
+   Toda tarefa (única ou rotina) pode ter também:
+     categoriaId: "c-trabalho" (ou null)   inicio: "09:00" (ou null)   fim: "10:30" (ou null)
+   Categorias (subcategorias) são da pessoa: { id, nome, cor }. Já vêm 6 prontas e ela cria, renomeia e apaga.
+
    Dados completos de uma pessoa:
-     { versao: 2, nome, tarefas: [], rotinas: [], feitas: {}, foco: null }
+     { versao: 3, nome, tarefas: [], rotinas: [], feitas: {}, categorias: [], visao: "tipo"|"categoria", foco: null }
 
    Regra da sequência (dias seguidos): um dia conta quando pelo menos UMA tarefa (única ou rotina) foi
    concluída nele. A barra é baixa de propósito: o objetivo é começar, não fazer tudo.
@@ -49,16 +53,22 @@
   function novoId(prefixo, agora) { return prefixo + agora.toString(36) + Math.random().toString(36).slice(2, 6); }
 
   /* Tarefa de um dia só. Devolve null se o texto estiver vazio. */
-  L.novaTarefa = function (texto, dia, agora, max) {
+  L.novaTarefa = function (texto, dia, agora, max, extra) {
     var t = limparTexto(texto, max); if (!t) return null;
-    return { id: novoId("t", agora), texto: t, dia: dia, criadaEm: agora, feitaEm: null };
+    return aplicarExtra({ id: novoId("t", agora), texto: t, dia: dia, criadaEm: agora, feitaEm: null }, extra);
   };
+  /* categoria e horário (opcionais) vão junto da tarefa */
+  function aplicarExtra(obj, extra) {
+    extra = extra || {};
+    obj.categoriaId = extra.categoriaId || null; obj.inicio = extra.inicio || null; obj.fim = extra.fim || null;
+    return obj;
+  }
   /* Tarefa que se repete. tipo "diaria" = todo dia; "semanal" = nos dias da semana informados (ex.: [2] = toda terça). */
-  L.novaRotina = function (texto, tipo, diasSemana, desde, agora, max) {
+  L.novaRotina = function (texto, tipo, diasSemana, desde, agora, max, extra) {
     var t = limparTexto(texto, max); if (!t) return null;
     var dias = tipo === "diaria" ? [0, 1, 2, 3, 4, 5, 6] : (diasSemana || []).filter(function (d, i, a) { return d >= 0 && d <= 6 && a.indexOf(d) === i; }).sort();
     if (!dias.length) return null;
-    return { id: novoId("r", agora), texto: t, tipo: tipo === "diaria" ? "diaria" : "semanal", diasSemana: dias, desde: desde, criadaEm: agora };
+    return aplicarExtra({ id: novoId("r", agora), texto: t, tipo: tipo === "diaria" ? "diaria" : "semanal", diasSemana: dias, desde: desde, criadaEm: agora }, extra);
   };
   /* A rotina acontece neste dia? (só a partir do dia em que foi criada) */
   L.rotinaOcorre = function (rotina, dia) { return dia >= rotina.desde && rotina.diasSemana.indexOf(L.diaSemana(dia)) !== -1; };
@@ -74,21 +84,103 @@
   L.itensDoDia = function (dados, dia) {
     var feitas = dados.feitas || {};
     var unicas = (dados.tarefas || []).filter(function (t) { return t.dia === dia; }).map(function (t) {
-      return { chave: t.id, tipo: "unica", texto: t.texto, dia: dia, feita: !!t.feitaEm, feitaEm: t.feitaEm || null, criadaEm: t.criadaEm, veioDe: t.veioDe };
+      return { chave: t.id, tipo: "unica", texto: t.texto, dia: dia, feita: !!t.feitaEm, feitaEm: t.feitaEm || null, criadaEm: t.criadaEm, veioDe: t.veioDe,
+               categoriaId: t.categoriaId || null, inicio: t.inicio || null, fim: t.fim || null };
     });
     var rotinas = (dados.rotinas || []).filter(function (r) { return L.rotinaOcorre(r, dia); }).map(function (r) {
       var f = feitas[L.chaveFeita(r.id, dia)] || null;
-      return { chave: "r:" + r.id, tipo: "rotina", rotinaId: r.id, texto: r.texto, dia: dia, feita: !!f, feitaEm: f, criadaEm: r.criadaEm, repete: L.rotuloRepete(r) };
+      return { chave: "r:" + r.id, tipo: "rotina", rotinaId: r.id, texto: r.texto, dia: dia, feita: !!f, feitaEm: f, criadaEm: r.criadaEm, repete: L.rotuloRepete(r),
+               categoriaId: r.categoriaId || null, inicio: r.inicio || null, fim: r.fim || null };
     });
     return { unicas: unicas, rotinas: rotinas, todos: unicas.concat(rotinas) };
   };
 
-  /* Lista na ordem da tela: as que faltam primeiro (na ordem de criação), as feitas no fim. Aceita itens ou tarefas. */
+  /* Lista na ordem da tela: as que faltam primeiro, as feitas no fim. Em cada grupo: quem tem horário vem antes
+     (do mais cedo para o mais tarde) e depois as sem horário, na ordem de criação. Aceita itens ou tarefas. */
   L.ordenar = function (lista) {
     return lista.slice().sort(function (a, b) {
       var fa = (a.feita || a.feitaEm) ? 1 : 0, fb = (b.feita || b.feitaEm) ? 1 : 0;
-      return fa - fb || a.criadaEm - b.criadaEm;
+      if (fa !== fb) return fa - fb;
+      var ia = a.inicio || null, ib = b.inicio || null;
+      if (ia && ib && ia !== ib) return ia < ib ? -1 : 1;
+      if (ia && !ib) return -1;
+      if (!ia && ib) return 1;
+      return a.criadaEm - b.criadaEm;
     });
+  };
+
+  /* ---------- horários ---------- */
+  /* "9:05" ou "09:05" -> "09:05"; devolve null se não for uma hora válida (00:00 a 23:59). */
+  L.normalizarHora = function (texto) {
+    var m = /^\s*([01]?\d|2[0-3]):([0-5]\d)\s*$/.exec(String(texto == null ? "" : texto));
+    return m ? dois(Number(m[1])) + ":" + m[2] : null;
+  };
+  L.minutos = function (hora) { var p = hora.split(":"); return Number(p[0]) * 60 + Number(p[1]); };
+  /* Confere início e fim (ambos opcionais). Devolve { ok, inicio, fim, erro }. */
+  L.validarHorario = function (inicio, fim) {
+    var i = (inicio == null || String(inicio).trim() === "") ? null : L.normalizarHora(inicio);
+    var f = (fim == null || String(fim).trim() === "") ? null : L.normalizarHora(fim);
+    if (inicio && String(inicio).trim() && !i) return { ok: false, erro: "O horário de início não é válido." };
+    if (fim && String(fim).trim() && !f) return { ok: false, erro: "O horário de fim não é válido." };
+    if (f && !i) return { ok: false, erro: "Informe também o horário de início." };
+    if (i && f && L.minutos(f) <= L.minutos(i)) return { ok: false, erro: "O fim precisa ser depois do início." };
+    return { ok: true, inicio: i, fim: f };
+  };
+  /* "09:00–10:30", "a partir das 09:00" ou "" (sem horário). */
+  L.rotuloHorario = function (inicio, fim) {
+    if (inicio && fim) return inicio + "–" + fim;
+    return inicio ? "a partir das " + inicio : "";
+  };
+  /* "1h30", "45min", "2h" (só quando há início e fim). */
+  L.duracao = function (inicio, fim) {
+    if (!inicio || !fim) return "";
+    var m = L.minutos(fim) - L.minutos(inicio), h = Math.floor(m / 60), r = m % 60;
+    return h ? h + "h" + (r ? dois(r) : "") : r + "min";
+  };
+  /* Dois horários se sobrepõem? Só vale quando os dois têm início e fim; encostar (um acaba quando o outro começa) não conta. */
+  L.sobrepoe = function (aIni, aFim, bIni, bFim) {
+    if (!aIni || !aFim || !bIni || !bFim) return false;
+    return L.minutos(aIni) < L.minutos(bFim) && L.minutos(bIni) < L.minutos(aFim);
+  };
+  /* Tarefas do dia (ainda por fazer) que batem com este horário. */
+  L.conflitos = function (itens, inicio, fim) {
+    return itens.filter(function (i) { return !i.feita && L.sobrepoe(inicio, fim, i.inicio, i.fim); });
+  };
+
+  /* ---------- categorias ---------- */
+  L.CORES_CATEGORIA = ["#3b6fd6", "#e8742c", "#7c5cd6", "#2fa56a", "#d9473f", "#d9a520", "#d9487d", "#1fa3a8"];
+  L.categoriasPadrao = function () {
+    return [
+      { id: "c-trabalho", nome: "Trabalho", cor: "#3b6fd6" }, { id: "c-casa", nome: "Casa", cor: "#e8742c" },
+      { id: "c-estudos", nome: "Estudos", cor: "#7c5cd6" }, { id: "c-tempo-livre", nome: "Tempo livre", cor: "#2fa56a" },
+      { id: "c-compromissos", nome: "Compromissos", cor: "#d9473f" }, { id: "c-supermercado", nome: "Lista de supermercado", cor: "#d9a520" }
+    ];
+  };
+  L.MAX_CATEGORIAS = 20;
+  /* Nova categoria; devolve null se o nome estiver vazio ou já existir (sem acento/maiúscula). */
+  L.novaCategoria = function (nome, cor, existentes, agora) {
+    var n = L.nomeLimpo(nome).slice(0, 24);
+    if (!n) return null;
+    var chave = L.normalizarNome(n);
+    if ((existentes || []).some(function (c) { return L.normalizarNome(c.nome) === chave; })) return null;
+    return { id: "c" + agora.toString(36) + Math.random().toString(36).slice(2, 5), nome: n, cor: cor || L.CORES_CATEGORIA[(existentes || []).length % L.CORES_CATEGORIA.length] };
+  };
+  /* Apaga a categoria. As tarefas dela NÃO somem: ficam "sem categoria". */
+  L.removerCategoria = function (dados, id) {
+    dados.categorias = dados.categorias.filter(function (c) { return c.id !== id; });
+    dados.tarefas.concat(dados.rotinas).forEach(function (t) { if (t.categoriaId === id) t.categoriaId = null; });
+    return dados;
+  };
+  /* Separa os itens por categoria, na ordem das categorias da pessoa; "sem categoria" por último; só as que têm itens. */
+  L.porCategoria = function (itens, categorias) {
+    var grupos = [], semCat = [];
+    categorias.forEach(function (c) {
+      var lista = L.ordenar(itens.filter(function (i) { return i.categoriaId === c.id; }));
+      if (lista.length) grupos.push({ categoria: c, itens: lista });
+    });
+    itens.forEach(function (i) { if (!categorias.some(function (c) { return c.id === i.categoriaId; })) semCat.push(i); });
+    if (semCat.length) grupos.push({ categoria: null, itens: L.ordenar(semCat) });
+    return grupos;
   };
 
   /* { total, feitas, pct } de uma lista de itens (ou de tarefas). */
@@ -151,8 +243,10 @@
     if (!Array.isArray(dados.rotinas)) dados.rotinas = [];
     if (!dados.feitas || typeof dados.feitas !== "object") dados.feitas = {};
     if (dados.foco === undefined) dados.foco = null;
+    if (!Array.isArray(dados.categorias)) dados.categorias = L.categoriasPadrao();
+    if (dados.visao !== "categoria") dados.visao = "tipo";
     if (nome && !dados.nome) dados.nome = nome;
-    dados.versao = 2;
+    dados.versao = 3;
     return dados;
   };
 

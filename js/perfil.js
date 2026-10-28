@@ -55,28 +55,44 @@ App.perfil = (function () {
     var previa = document.getElementById("previa-lista"), botao = document.getElementById("botao-pronto");
     function desenharPrevia() {
       var itens = [];
-      dados.rotinas.forEach(function (r) { itens.push({ texto: r.texto, quando: L.rotuloRepete(r), rep: true }); });
-      dados.tarefas.forEach(function (t) { itens.push({ texto: t.texto, quando: L.nomeDoDia(t.dia, hoje), rep: false }); });
+      function detalhe(t, quando) {
+        var c = dados.categorias.filter(function (x) { return x.id === t.categoriaId; })[0], h = L.rotuloHorario(t.inicio, t.fim);
+        return [quando, c ? c.nome : "", h].filter(Boolean).join(" · ");
+      }
+      dados.rotinas.forEach(function (r) { itens.push({ texto: r.texto, quando: detalhe(r, L.rotuloRepete(r)) }); });
+      dados.tarefas.forEach(function (t) { itens.push({ texto: t.texto, quando: detalhe(t, L.nomeDoDia(t.dia, hoje)) }); });
       previa.innerHTML = itens.map(function (i) { return "<li>" + App.icone("check") + "<span>" + u.escaparHtml(i.texto) + '</span><small>' + u.escaparHtml(i.quando) + "</small></li>"; }).join("");
       botao.textContent = itens.length ? "Pronto, ver minha lista" : "Pular por agora";
     }
     App.formulario.criar(document.getElementById("formulario-criar"), {
-      hoje: hoje, diaInicial: hoje, mostrarDias: true,
-      aoAdicionar: function (def) { var ok = aoAdicionarTarefa(dados, def, hoje); if (ok) { A.gravar(dados); desenharPrevia(); } return ok; }
+      hoje: hoje, diaInicial: hoje, mostrarDias: true, abrirOpcoes: true,
+      categorias: function () { return dados.categorias; },
+      aoAdicionar: function (def) { var r = aoAdicionarTarefa(dados, def, hoje); if (r.ok) { A.gravar(dados); desenharPrevia(); } return r; }
     });
     botao.addEventListener("click", aoConcluir);
     desenharPrevia();
   }
 
-  /* Cria a tarefa (única ou rotina) a partir do formulário. Devolve true se criou. Usado aqui e na tela principal. */
+  /* Cria a tarefa (única ou rotina) a partir do formulário. Devolve { ok: true, aviso? } ou { ok: false, erro }.
+     O aviso aparece quando o horário bate com outra tarefa do mesmo dia (não impede de salvar). Usado aqui e na tela principal. */
   function aoAdicionarTarefa(dados, def, hoje) {
-    var agora = Date.now(), item;
-    if (def.repete === "diaria") item = L.novaRotina(def.texto, "diaria", [], def.dia < hoje ? hoje : def.dia, agora, cfg.MAX_TEXTO_TAREFA);
-    else if (def.repete === "semanal") item = L.novaRotina(def.texto, "semanal", [L.diaSemana(def.dia)], def.dia < hoje ? hoje : def.dia, agora, cfg.MAX_TEXTO_TAREFA);
-    else item = L.novaTarefa(def.texto, def.dia, agora, cfg.MAX_TEXTO_TAREFA);
-    if (!item) return false;
-    (item.id.charAt(0) === "r" ? dados.rotinas : dados.tarefas).push(item);
-    return true;
+    var h = L.validarHorario(def.inicio, def.fim);
+    if (!h.ok) return { ok: false, erro: h.erro };
+    var extra = { categoriaId: def.categoriaId || null, inicio: h.inicio, fim: h.fim };
+    var agora = Date.now(), desde = def.dia < hoje ? hoje : def.dia, item;
+    if (def.repete === "diaria") item = L.novaRotina(def.texto, "diaria", [], desde, agora, cfg.MAX_TEXTO_TAREFA, extra);
+    else if (def.repete === "semanal") item = L.novaRotina(def.texto, "semanal", [L.diaSemana(def.dia)], desde, agora, cfg.MAX_TEXTO_TAREFA, extra);
+    else item = L.novaTarefa(def.texto, def.dia, agora, cfg.MAX_TEXTO_TAREFA, extra);
+    if (!item) return { ok: false, erro: "Escreva a tarefa primeiro." };
+    var ehRotina = item.id.charAt(0) === "r";
+    (ehRotina ? dados.rotinas : dados.tarefas).push(item);
+    var aviso = null;
+    if (h.inicio && h.fim) {
+      var minha = ehRotina ? "r:" + item.id : item.id;
+      var batem = L.conflitos(L.itensDoDia(dados, desde).todos.filter(function (i) { return i.chave !== minha; }), h.inicio, h.fim);
+      if (batem.length) aviso = "Atenção: esse horário bate com “" + batem[0].texto + "” (" + L.rotuloHorario(batem[0].inicio, batem[0].fim) + ").";
+    }
+    return { ok: true, aviso: aviso };
   }
 
   /* Liga o módulo. aoEntrar(precisaCriarLista) é chamado quando há uma pessoa conectada. */

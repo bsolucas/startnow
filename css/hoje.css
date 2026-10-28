@@ -93,7 +93,7 @@
 
 /* ===== Telas de entrada: "Oi, digite seu nome" e "Criar lista de tarefas" ===== */
 .tela-cheia { min-height: 100vh; display: grid; place-items: center; padding: 24px 18px; }
-.tela-caixa { width: 100%; max-width: 420px; display: grid; gap: 14px; }
+.tela-caixa { width: 100%; max-width: 420px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
 .tela-larga { max-width: 520px; }
 .marca-grande { justify-content: center; font-size: 1.3rem; margin-bottom: 8px; }
 .marca-grande .marca-icone { width: 44px; height: 44px; font-size: 1.3rem; border-radius: 12px; }
@@ -112,7 +112,8 @@
 .previa-lista li small { color: var(--texto-suave); white-space: nowrap; }
 
 /* ===== Formulário de nova tarefa: "quando" e "repetir" ===== */
-.form-tarefa { display: grid; gap: 8px; }
+.form-tarefa { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.form-tarefa > *, .opcoes-tarefa > * { min-width: 0; }
 .chips-rotulo { margin-top: 4px; font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--texto-suave); }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .chip { min-height: 40px; padding: 6px 14px; border-radius: 999px; border: 1.5px solid var(--borda); background: var(--superficie); color: var(--texto-suave); font-weight: 600; font-size: 0.92rem; cursor: pointer; transition: all 0.12s; }
@@ -152,3 +153,47 @@
 .avatar { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50%; border: 0; background: var(--destaque); color: var(--sobre-destaque); font-weight: 800; font-size: 1.05rem; cursor: pointer; }
 .menu-perfil { position: absolute; right: 0; top: calc(100% + 8px); z-index: 30; min-width: 190px; display: grid; gap: 10px; padding: 14px; border-radius: 14px; background: var(--superficie); border: 1px solid var(--borda); box-shadow: var(--sombra); }
 .menu-perfil p { overflow-wrap: anywhere; }
+
+/* ===== Categoria, horário e repetição no formulário ===== */
+.opcoes-tarefa { border-radius: 14px; background: var(--superficie); border: 1px solid var(--borda); padding: 0 14px; }
+.opcoes-tarefa[open] { padding-bottom: 14px; }
+.opcoes-tarefa summary { display: grid; gap: 2px; padding: 11px 0; cursor: pointer; list-style: none; font-weight: 600; }
+.opcoes-tarefa summary::-webkit-details-marker { display: none; }
+.opcoes-tarefa summary span::after { content: "  ▾"; color: var(--texto-suave); font-size: 0.8rem; }
+.opcoes-tarefa[open] summary span::after { content: "  ▴"; }
+.opcoes-tarefa summary small { color: var(--destaque-texto); font-weight: 600; font-size: 0.82rem; }
+.opcoes-tarefa .chips-rotulo { margin-top: 12px; }
+.chip-cat { display: inline-flex; align-items: center; gap: 7px; }
+.chip-cat i { width: 10px; height: 10px; border-radius: 50%; background: var(--cat); flex: none; }
+.chip-cat[aria-pressed="true"] { background: var(--superficie-3); border-color: var(--cat); color: var(--texto); box-shadow: inset 0 0 0 1px var(--cat); }
+.horarios { display: flex; align-items: center; gap: 8px; }
+.horarios label { flex: 1 1 0; min-width: 0; display: flex; align-items: center; gap: 6px; color: var(--texto-suave); font-weight: 600; font-size: 0.9rem; }
+.horarios input { flex: 1 1 0; }
+.campo-hora { width: 100%; min-width: 0; min-height: 46px; padding: 8px 4px; text-align: center; font-size: 0.95rem; }
+
+/* ===== Linha da tarefa: horário e categoria ===== */
+.tarefa-hora { display: inline-flex; align-items: center; gap: 5px; margin: 2px 0 0; color: var(--texto); font-size: 0.82rem; font-weight: 700; font-variant-numeric: tabular-nums; text-decoration: none; }
+.tarefa-hora .ico { width: 13px; height: 13px; color: var(--texto-suave); }
+.tarefa.feita .tarefa-hora { color: var(--texto-suave); }
+.tarefa-cat { display: inline-flex; align-items: center; gap: 6px; margin: 3px 0 0; color: var(--texto-suave); font-size: 0.76rem; font-weight: 600; text-decoration: none; }
+.tarefa-cat i { width: 8px; height: 8px; border-radius: 50%; background: var(--cat); }
+
+/* ===== Barra da lista: ver por tipo / por categoria ===== */
+.barra-lista { display: flex; align-items: center; gap: 10px; justify-content: space-between; }
+.segmentos-2 { grid-template-columns: repeat(2, 1fr); flex: 1; max-width: 235px; }
+.segmentos-2 button { min-height: 38px; padding: 0 6px; font-size: 0.86rem; white-space: nowrap; }
+.barra-lista > .botao { flex: none; white-space: nowrap; }
+.grupo-cat { border-left: 4px solid var(--cat); padding-left: 10px; }
+.cat-ponto { width: 10px; height: 10px; border-radius: 50%; background: var(--cat); flex: none; }
+
+/* ===== Painel de categorias ===== */
+.tela-texto-esq { color: var(--texto-suave); font-size: 0.92rem; }
+.cat-lista { list-style: none; margin: 4px 0; padding: 0; display: grid; gap: 8px; }
+.cat-linha { display: flex; align-items: center; gap: 8px; }
+.cat-linha .campo { flex: 1; min-height: 44px; }
+.cat-cor { flex: none; width: 36px; height: 36px; border-radius: 50%; border: 3px solid var(--superficie-3); background: var(--cat); cursor: pointer; }
+.cat-qtd { min-width: 26px; text-align: center; color: var(--texto-suave); font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+.cat-nova { display: flex; gap: 8px; margin-top: 6px; }
+.cat-nova .campo { flex: 1; }
+.cat-vazio { padding: 8px; }
+.painel-acoes.um { grid-template-columns: 1fr; }

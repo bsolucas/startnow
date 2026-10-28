@@ -62,11 +62,17 @@ App.hoje = (function () {
       '<button class="botao botao-borda botao-pequeno" data-pendentes="dispensar">Dispensar</button></div>';
   }
 
-  function linha(i) {
-    var podeComecar = !i.feita && selecionado === hoje;
+  function categoriaDe(id) { return dados.categorias.filter(function (c) { return c.id === id; })[0] || null; }
+
+  /* mostrarCat = false na visão "por categoria" (o título do grupo já diz a categoria) */
+  function linha(i, mostrarCat) {
+    var podeComecar = !i.feita && selecionado === hoje, cat = mostrarCat === false ? null : categoriaDe(i.categoriaId);
+    var hora = L.rotuloHorario(i.inicio, i.fim), dur = L.duracao(i.inicio, i.fim);
     return '<li class="tarefa' + (i.feita ? " feita" : "") + '" data-chave="' + u.escaparHtml(i.chave) + '">' +
       '<button type="button" class="tarefa-check" data-acao="alternar" aria-pressed="' + i.feita + '" aria-label="' + (i.feita ? "Desmarcar" : "Marcar como feita") + ": " + u.escaparHtml(i.texto) + '">' + App.icone("check") + "</button>" +
       '<span class="tarefa-texto">' + u.escaparHtml(i.texto) +
+        (hora ? '<small class="tarefa-hora">' + App.icone("relogio") + " " + u.escaparHtml(hora) + (dur ? " · " + dur : "") + "</small>" : "") +
+        (cat ? '<small class="tarefa-cat" style="--cat:' + cat.cor + '"><i></i>' + u.escaparHtml(cat.nome) + "</small>" : "") +
         (i.repete ? '<small class="tarefa-tag">' + App.icone("repetir") + " " + u.escaparHtml(i.repete) + "</small>" : "") +
         (i.veioDe ? '<small class="tarefa-origem">veio de ' + u.escaparHtml(i.veioDe.split("-").reverse().slice(0, 2).join("/")) + "</small>" : "") + "</span>" +
       (podeComecar ? '<button type="button" class="tarefa-botao" data-acao="foco" aria-label="Começar agora: ' + u.escaparHtml(i.texto) + '" title="Começar agora">' + App.icone("play") + "</button>" : "") +
@@ -75,19 +81,38 @@ App.hoje = (function () {
   function grupo(titulo, lista, classe) {
     if (!lista.length) return "";
     return '<section class="grupo ' + (classe || "") + '"><h2 class="grupo-titulo">' + u.escaparHtml(titulo) + '<span class="grupo-qtd">' + lista.length + "</span></h2>" +
-      '<ul class="lista-tarefas">' + lista.map(linha).join("") + "</ul></section>";
+      '<ul class="lista-tarefas">' + lista.map(function (i) { return linha(i, true); }).join("") + "</ul></section>";
+  }
+
+  function desenharBarra() {
+    var v = dados.visao === "categoria" ? "categoria" : "tipo";
+    $("barra-lista").innerHTML =
+      '<div class="segmentos segmentos-2" role="group" aria-label="Como ver a lista">' +
+        '<button type="button" data-visao="tipo" aria-pressed="' + (v === "tipo") + '">Por tipo</button>' +
+        '<button type="button" data-visao="categoria" aria-pressed="' + (v === "categoria") + '">Por categoria</button></div>' +
+      '<button type="button" class="botao botao-borda botao-pequeno" data-acao="categorias">' + App.icone("etiqueta") + " Categorias</button>";
   }
 
   function desenharGrupos() {
-    var it = itensDe(selecionado), ehHoje = selecionado === hoje;
-    var tituloDia = ehHoje ? "Tarefas de hoje" : "Tarefas para " + L.nomeDoDia(selecionado, hoje);
-    var unicasAFazer = L.ordenar(it.unicas).filter(function (i) { return !i.feita; });
-    var rotinasAFazer = L.ordenar(it.rotinas).filter(function (i) { return !i.feita; });
-    var concluidas = L.ordenar(it.todos).filter(function (i) { return i.feita; });
-    var html = grupo(tituloDia, unicasAFazer) + grupo("Tarefas diárias", rotinasAFazer, "grupo-rotinas");
-    if (concluidas.length) {
-      html += '<details class="grupo grupo-concluidas" open><summary class="grupo-titulo">Concluídas<span class="grupo-qtd">' + concluidas.length + "</span></summary>" +
-        '<ul class="lista-tarefas">' + concluidas.map(linha).join("") + "</ul></details>";
+    var it = itensDe(selecionado), ehHoje = selecionado === hoje, html = "";
+    if (dados.visao === "categoria") {
+      /* uma seção por categoria, com tudo dela (de hoje, diárias e concluídas), em ordem de horário */
+      L.porCategoria(it.todos, dados.categorias).forEach(function (g) {
+        var feitas = g.itens.filter(function (i) { return i.feita; }).length, nome = g.categoria ? g.categoria.nome : "Sem categoria";
+        html += '<section class="grupo grupo-cat" style="--cat:' + (g.categoria ? g.categoria.cor : "var(--borda-forte)") + '"><h2 class="grupo-titulo"><i class="cat-ponto"></i>' + u.escaparHtml(nome) +
+          '<span class="grupo-qtd">' + feitas + "/" + g.itens.length + "</span></h2>" +
+          '<ul class="lista-tarefas">' + g.itens.map(function (i) { return linha(i, false); }).join("") + "</ul></section>";
+      });
+    } else {
+      var tituloDia = ehHoje ? "Tarefas de hoje" : "Tarefas para " + L.nomeDoDia(selecionado, hoje);
+      var unicasAFazer = L.ordenar(it.unicas).filter(function (i) { return !i.feita; });
+      var rotinasAFazer = L.ordenar(it.rotinas).filter(function (i) { return !i.feita; });
+      var concluidas = L.ordenar(it.todos).filter(function (i) { return i.feita; });
+      html = grupo(tituloDia, unicasAFazer) + grupo("Tarefas diárias", rotinasAFazer, "grupo-rotinas");
+      if (concluidas.length) {
+        html += '<details class="grupo grupo-concluidas" open><summary class="grupo-titulo">Concluídas<span class="grupo-qtd">' + concluidas.length + "</span></summary>" +
+          '<ul class="lista-tarefas">' + concluidas.map(function (i) { return linha(i, true); }).join("") + "</ul></details>";
+      }
     }
     $("grupos").innerHTML = html;
     $("vazio").hidden = it.todos.length > 0;
@@ -98,7 +123,7 @@ App.hoje = (function () {
     var nome = A.atual() ? A.atual().nome : "";
     $("botao-perfil").textContent = nome.charAt(0).toUpperCase() || "?";
     $("botao-perfil").title = nome; $("menu-nome").textContent = nome;
-    desenharSemana(); desenharResumo(); desenharPendentes(); desenharGrupos();
+    desenharSemana(); desenharResumo(); desenharPendentes(); desenharBarra(); desenharGrupos();
   }
 
   /* ---------- ações ---------- */
@@ -150,14 +175,20 @@ App.hoje = (function () {
   function montarUmaVez() {
     montado = true;
     formulario = App.formulario.criar($("formulario-principal"), {
-      hoje: hoje, diaInicial: selecionado, mostrarDias: false,
+      hoje: hoje, diaInicial: selecionado, mostrarDias: false, abrirOpcoes: false,
+      categorias: function () { return dados.categorias; },
       aoAdicionar: function (def) {
-        var ok = App.perfil.adicionarTarefa(dados, def, hoje);
-        if (ok) { salvar(); desenhar(); }
-        return ok;
+        var r = App.perfil.adicionarTarefa(dados, def, hoje);
+        if (r.ok) { salvar(); desenhar(); }
+        return r;
       }
     });
     $("semana").addEventListener("click", function (ev) { var b = ev.target.closest("[data-dia]"); if (b) escolherDia(b.getAttribute("data-dia")); });
+    $("barra-lista").addEventListener("click", function (ev) {
+      var v = ev.target.closest("[data-visao]"), c = ev.target.closest("[data-acao=categorias]");
+      if (v) { dados.visao = v.getAttribute("data-visao"); salvar(); desenhar(); }
+      else if (c) App.categorias.abrir(dados, salvar, function () { formulario.atualizarCategorias(); desenhar(); });
+    });
     $("grupos").addEventListener("click", function (ev) {
       var b = ev.target.closest("[data-acao]"), li = ev.target.closest("[data-chave]");
       if (!b || !li) return;

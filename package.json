@@ -1,0 +1,8 @@
+{
+  "name": "startnow",
+  "version": "1.0.0",
+  "private": true,
+  "description": "StartNow: lista de tarefas do dia com cronômetro. A pasta api/ guarda o login e os dados na nuvem (Postgres da Vercel / Neon).",
+  "scripts": { "test": "node --test test/" },
+  "dependencies": { "@neondatabase/serverless": "^0.10.4" }
+}

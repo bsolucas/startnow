@@ -10,6 +10,7 @@ App.perfil = (function () {
   var L = App.logica, u = App.utils, A = App.armazenamento, cfg = App.config;
   var entrada = document.getElementById("entrada"), criarLista = document.getElementById("criar-lista");
   var aoPronto = function () {};
+  var comNuvem = false;   // true = o servidor tem a nuvem configurada: pede nome + senha de verdade
 
   function esconderTudo() { entrada.hidden = true; criarLista.hidden = true; document.getElementById("app").hidden = true; }
 
@@ -20,16 +21,18 @@ App.perfil = (function () {
     entrada.innerHTML =
       '<div class="tela-caixa"><div class="marca marca-grande"><span class="marca-icone">S</span><span>' + u.escaparHtml(cfg.NOME_APP) + "</span></div>" +
         '<h1 class="tela-titulo">Oi! Digite seu nome</h1>' +
-        '<p class="tela-texto">Seu nome é o seu acesso. Na próxima vez, é só digitá-lo de novo.</p>' +
-        '<form id="form-nome" autocomplete="off"><input class="campo campo-grande" id="campo-nome" maxlength="30" placeholder="Seu nome" aria-label="Seu nome" autocapitalize="words" enterkeyhint="go" />' +
-          '<label class="marcador"><input type="checkbox" id="lembrar" checked /> Continuar conectado neste aparelho</label>' +
+        '<p class="tela-texto">' + (comNuvem ? "Entre com o seu nome e a sua senha. Sua lista fica guardada na sua conta e aparece em qualquer aparelho." : "Seu nome é o seu acesso. Na próxima vez, é só digitá-lo de novo.") + "</p>" +
+        '<form id="form-nome" autocomplete="' + (comNuvem ? "on" : "off") + '"><input class="campo campo-grande" id="campo-nome" name="username" maxlength="30" placeholder="Seu nome" aria-label="Seu nome" autocapitalize="words" enterkeyhint="' + (comNuvem ? "next" : "go") + '" autocomplete="' + (comNuvem ? "username" : "off") + '" />' +
+          (comNuvem ? '<input class="campo campo-grande" id="campo-senha" name="password" type="password" maxlength="200" placeholder="Sua senha" aria-label="Sua senha" autocomplete="current-password" enterkeyhint="go" />' : "") +
+          (comNuvem ? "" : '<label class="marcador"><input type="checkbox" id="lembrar" checked /> Continuar conectado neste aparelho</label>') +
           '<p class="erro" id="erro-nome" role="alert">' + u.escaparHtml(msg || "") + "</p>" +
-          '<button class="botao botao-primario botao-grande botao-largo" type="submit">Continuar</button></form>' +
-        '<p class="tela-nota">Só para testes: o nome é login e senha ao mesmo tempo, e fica guardado neste aparelho.</p></div>';
+          '<button class="botao botao-primario botao-grande botao-largo" type="submit">' + (comNuvem ? "Entrar" : "Continuar") + "</button></form>" +
+        (comNuvem ? "" : '<p class="tela-nota">Só para testes: o nome é login e senha ao mesmo tempo, e fica guardado neste aparelho.</p>') + "</div>";
     var campo = document.getElementById("campo-nome");
     campo.focus();
     document.getElementById("form-nome").addEventListener("submit", function (ev) {
       ev.preventDefault();
+      if (comNuvem) return entrarNaNuvem(campo.value, document.getElementById("campo-senha").value);
       var nome = L.nomeLimpo(campo.value);
       if (!nome) { document.getElementById("erro-nome").textContent = "Digite o seu nome para continuar."; campo.focus(); return; }
       var lembrar = document.getElementById("lembrar").checked, existente = A.achar(nome), novo = !existente;
@@ -38,6 +41,24 @@ App.perfil = (function () {
       // pessoa nova (ou que ainda não criou nenhuma tarefa) passa pela criação da lista
       var d = A.ler();
       aoPronto(novo || (!d.tarefas.length && !d.rotinas.length));
+    });
+  }
+
+  /* Entrada com nome + senha: confere no servidor, traz a lista da nuvem (ou sobe a deste aparelho, se a nuvem está vazia). */
+  function entrarNaNuvem(nomeDigitado, senha) {
+    var erro = document.getElementById("erro-nome"), botao = entrada.querySelector("button[type=submit]");
+    if (!L.nomeLimpo(nomeDigitado) || !senha) { erro.textContent = "Digite o nome e a senha."; return; }
+    botao.disabled = true; erro.textContent = "";
+    App.nuvem.entrar(nomeDigitado, senha).then(function (r) {
+      if (!r.ok) { botao.disabled = false; erro.textContent = r.erro; return; }
+      var perfil = A.achar(r.nome) || A.criar(r.nome);
+      A.entrar(perfil.chave, true);
+      return App.nuvem.baixar().then(function (b) {
+        if (b.dados) A.substituir(b.dados);
+        else { var d = A.ler(); if (d.tarefas.length || d.rotinas.length) A.gravar(d); }   // nuvem vazia: sobe o que já existe neste aparelho
+        var d2 = A.ler();
+        aoPronto(!d2.tarefas.length && !d2.rotinas.length);
+      });
     });
   }
 
@@ -102,9 +123,20 @@ App.perfil = (function () {
   /* Liga o módulo. aoEntrar(precisaCriarLista) é chamado quando há uma pessoa conectada. */
   function iniciar(aoEntrar) {
     aoPronto = aoEntrar;
-    var salva = A.sessaoSalva();
-    if (salva && A.entrar(salva.chave, true)) return aoEntrar(false);
-    mostrarEntrada();
+    App.nuvem.disponivel().then(function (ligada) {
+      comNuvem = ligada;
+      var salva = A.sessaoSalva();
+      if (comNuvem && !App.nuvem.conectado()) return mostrarEntrada();   // nuvem ligada: sempre exige a senha
+      if (!salva || !A.entrar(salva.chave, true)) return mostrarEntrada();
+      if (!comNuvem) return aoEntrar(false);
+      // conectado na nuvem: traz a versão mais nova antes de mostrar a lista (offline: usa a deste aparelho)
+      App.nuvem.baixar().then(function (b) {
+        if (b.expirou) { A.sair(); return mostrarEntrada("Sua sessão expirou. Entre de novo."); }
+        if (b.dados && !b.pendente) A.substituir(b.dados);
+        else if (b.pendente) App.nuvem.tentarPendente(function () { return A.ler(); });
+        aoEntrar(false);
+      });
+    });
   }
   function sair() { App.foco.limpar(); A.sair(); mostrarEntrada(); }
 

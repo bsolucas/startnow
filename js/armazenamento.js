@@ -48,7 +48,7 @@ App.armazenamento = (function () {
     recarregar();
     return true;
   }
-  function sair() { atual = null; memoria = null; gravarJSON(K_SESSAO, null); }
+  function sair() { atual = null; memoria = null; gravarJSON(K_SESSAO, null); if (App.nuvem) App.nuvem.sair(); }
   /* Quem ficou conectado da última vez (ou null). */
   function sessaoSalva() { var s = lerJSON(K_SESSAO); return s && s.chave ? perfis().filter(function (p) { return p.chave === s.chave; })[0] || null : null; }
 
@@ -59,10 +59,16 @@ App.armazenamento = (function () {
     return memoria;
   }
   function ler() { return memoria || recarregar(); }
-  function gravar(dados) { if (!atual) return; memoria = dados; gravarJSON(chaveDados(atual.chave), dados); }
+  function gravar(dados, semNuvem) {
+    if (!atual) return;
+    memoria = dados; gravarJSON(chaveDados(atual.chave), dados);
+    if (!semNuvem && App.nuvem && App.nuvem.conectado()) App.nuvem.agendar(function () { return memoria; });
+  }
+  /* Troca os dados locais pelos que vieram da nuvem (sem devolvê-los para a nuvem). */
+  function substituir(dados) { if (!atual) return; gravar(L.migrar(dados, atual.nome), true); }
 
   return {
     perfis: perfis, achar: achar, criar: criar, entrar: entrar, sair: sair, sessaoSalva: sessaoSalva,
-    atual: function () { return atual; }, ler: ler, recarregar: recarregar, gravar: gravar
+    atual: function () { return atual; }, ler: ler, recarregar: recarregar, gravar: gravar, substituir: substituir
   };
 })();

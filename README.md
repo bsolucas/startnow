@@ -77,3 +77,7 @@ Ao mudar qualquer arquivo listado em `service-worker.js`, aumente `VERSAO_CACHE`
 2. Lembrete diário no celular ("Qual é a sua primeira tarefa de hoje?").
 3. Tarefas que se repetem (rotina), e histórico dos dias.
 4. Publicar na Vercel.
+
+## Nuvem (login e lista em qualquer aparelho)
+
+A pasta `api/` tem três funções da Vercel: `estado` (a nuvem está ligada?), `entrar` (nome + senha) e `dados` (ler/gravar a lista). Elas usam um Postgres (Neon, pela aba **Storage** da Vercel) e só funcionam quando existe a variável `DATABASE_URL`. **Sem ela o app continua local**, como antes. Senhas são guardadas só como hash (scrypt), há limite de 8 tentativas a cada 5 minutos e a sessão vale 30 dias. Não existe cadastro pela internet: as pessoas são criadas direto no banco. Se dois aparelhos editarem ao mesmo tempo, vale a última gravação. O código do app fica em `js/nuvem.js`; a lógica do servidor em `api/_nuvem.js` (testada em `test/nuvem.test.js`).

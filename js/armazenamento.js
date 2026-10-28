@@ -12,9 +12,17 @@ App.armazenamento = (function () {
   function vazio() { return { versao: 1, tarefas: [], foco: null }; }
 
   /* Lê do navegador (de novo). Use ao voltar para o app, caso outra aba tenha mudado alguma coisa. */
+  var chaveAntiga = "comecaja-dados";   // nome antigo do app ("Começa Já"): os dados são trazidos para a chave nova
+
   function recarregar() {
     try {
-      var j = JSON.parse(localStorage.getItem(chave));
+      var bruto = localStorage.getItem(chave);
+      if (bruto === null && localStorage.getItem(chaveAntiga) !== null) {
+        bruto = localStorage.getItem(chaveAntiga);
+        localStorage.setItem(chave, bruto);
+        localStorage.removeItem(chaveAntiga);
+      }
+      var j = JSON.parse(bruto);
       if (j && Array.isArray(j.tarefas)) { memoria = j; return j; }
     } catch (e) { /* sem armazenamento ou dado quebrado */ }
     return memoria || (memoria = vazio());

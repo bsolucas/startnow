@@ -1,37 +1,68 @@
 /* =============================================================================
    base.css — CORES, FONTES E REGRAS BÁSICAS
    -----------------------------------------------------------------------------
-   Mesma família visual do Manager Transportes: fundo escuro e azul calmo.
-   Para mudar a cor do app inteiro, altere os valores abaixo.
+   As cores ficam todas aqui, como variáveis (--nome). Três grupos:
+     • DESTAQUE: a cor do app (botões, barra, círculo). É a que a pessoa escolhe em "Personalizar";
+       o js/tema.js recalcula as variações (escuro, claro, suave) a partir dela.
+     • TEMA: fundo, cartões e textos. Escuro é o padrão; [data-tema="claro"] troca tudo de uma vez.
+     • STATUS: verde (feito), amarelo (atenção), vermelho.
    ============================================================================= */
 :root {
-  --azul: #3b6fd6;
-  --azul-escuro: #2f58ad;
-  --azul-claro: #7ea2e8;
-  --azul-suave: rgba(59, 111, 214, 0.16);
+  /* --- destaque (valores iniciais; o js/tema.js troca conforme a escolha) --- */
+  --destaque: #3b6fd6;
+  --destaque-escuro: #2f58ad;
+  --destaque-claro: #7ea2e8;
+  --destaque-suave: rgba(59, 111, 214, 0.16);
+  --destaque-brilho: rgba(59, 111, 214, 0.28);
+  --destaque-texto: #7ea2e8;       /* destaque usado COMO TEXTO (legível sobre o fundo do tema) */
+  --sobre-destaque: #ffffff;       /* cor do texto que fica em cima do destaque (botões) */
 
-  --preto: #07080b;
+  /* --- tema escuro (padrão) --- */
+  --fundo: #07080b;
+  --fundo-topo: rgba(7, 8, 11, 0.82);
   --superficie: #101218;
   --superficie-2: #171a22;
   --superficie-3: #20242e;
   --borda: #272c38;
-
+  --borda-forte: #4a5163;
   --texto: #f1f3f8;
   --texto-suave: #9aa3b6;
+  --placeholder: #6f788c;
+  --sombra: 0 10px 30px rgba(0, 0, 0, 0.5);
 
-  --verde: #34c27a;        /* tarefa feita */
-  --amarelo: #f5a524;      /* atenção */
+  /* --- status --- */
+  --verde: #34c27a;
+  --amarelo: #f5a524;
   --vermelho: #ef4444;
 
   --raio: 14px;
   --fonte: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+  color-scheme: dark;
+}
+
+/* --- tema claro --- */
+[data-tema="claro"] {
+  --fundo: #f3f5fa;
+  --fundo-topo: rgba(243, 245, 250, 0.86);
+  --superficie: #ffffff;
+  --superficie-2: #f0f2f8;
+  --superficie-3: #e6e9f2;
+  --borda: #d8ddea;
+  --borda-forte: #aab2c4;
+  --texto: #141925;
+  --texto-suave: #576079;
+  --placeholder: #8a93a8;
+  --sombra: 0 10px 30px rgba(20, 25, 37, 0.18);
+  --verde: #1f9d62;
+  --amarelo: #b86e00;
+  color-scheme: light;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; min-height: 100%; }
 body {
   font-family: var(--fonte); font-size: 16px; line-height: 1.45; color: var(--texto);
-  background: radial-gradient(900px 380px at 50% -8%, rgba(59, 111, 214, 0.28), transparent 70%), var(--preto);
+  background: radial-gradient(900px 380px at 50% -8%, var(--destaque-brilho), transparent 70%), var(--fundo);
   background-attachment: fixed;
   -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent;
   padding-bottom: calc(40px + env(safe-area-inset-bottom));
@@ -41,4 +72,4 @@ p { margin: 0; }
 button, input { font: inherit; color: inherit; }
 [hidden] { display: none !important; }
 .ico { width: 1.15em; height: 1.15em; flex: none; vertical-align: -0.18em; }
-:focus-visible { outline: 3px solid var(--azul-claro); outline-offset: 2px; }
+:focus-visible { outline: 3px solid var(--destaque-claro); outline-offset: 2px; }

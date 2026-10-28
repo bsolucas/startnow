@@ -9,14 +9,16 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Começa Já</title>
+  <title>StartNow</title>
 
   <!-- PWA: deixa o app instalável no celular (Android/iPhone) -->
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#3b6fd6" />
+  <!-- Cores e tema: roda já no <head> para a página nascer com a cor escolhida (sem piscar) -->
+  <script src="js/tema.js"></script>
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-title" content="Começa Já" />
+  <meta name="apple-mobile-web-app-title" content="StartNow" />
   <link rel="icon" type="image/png" href="icones/icone-192.png" />
   <link rel="apple-touch-icon" href="icones/apple-touch-icon.png" />
 
@@ -27,9 +29,10 @@
 <body>
 
   <header class="topo">
-    <div class="marca"><span class="marca-icone">C</span><span>Começa Já</span></div>
+    <div class="marca"><span class="marca-icone">S</span><span>StartNow</span></div>
     <div class="topo-espaco"></div>
     <span class="selo-sequencia" id="selo-sequencia" hidden></span>
+    <button type="button" class="botao-icone" id="botao-personalizar" aria-label="Personalizar cores" title="Personalizar cores"></button>
   </header>
 
   <main class="conteudo">
@@ -46,6 +49,9 @@
     <p class="vazio" id="vazio" hidden>Nenhuma tarefa ainda.<br>Escreva a primeira acima. Quanto menor, melhor.</p>
   </main>
 
+  <!-- Painel "Personalizar" (desenhado por js/personalizar.js) -->
+  <div class="painel" id="painel" hidden></div>
+
   <!-- Cronômetro "Começar agora" (desenhado por js/foco.js) -->
   <div class="foco" id="foco" hidden></div>
 
@@ -57,6 +63,7 @@
   <script src="js/logica.js"></script>
   <script src="js/utilitarios.js"></script>
   <script src="js/armazenamento.js"></script>
+  <script src="js/personalizar.js"></script>
   <script src="js/foco.js"></script>
   <script src="js/hoje.js"></script>
   <script src="js/pwa.js"></script>

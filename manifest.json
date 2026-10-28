@@ -1,6 +1,6 @@
 {
-  "name": "Começa Já",
-  "short_name": "Começa Já",
+  "name": "StartNow",
+  "short_name": "StartNow",
   "description": "Lista do dia e cronômetro de 5 minutos para parar de procrastinar.",
   "start_url": "./",
   "scope": "./",
